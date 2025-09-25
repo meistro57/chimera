@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply h-full;
+  }
+
+  #root {
+    @apply h-full;
+  }
+}
+
+@layer components {
+  .message-bubble {
+    @apply max-w-2xl p-4 rounded-lg shadow-sm;
+  }
+
+  .message-philosopher {
+    @apply bg-purple-50 border-l-4 border-philosopher;
+  }
+
+  .message-comedian {
+    @apply bg-yellow-50 border-l-4 border-comedian;
+  }
+
+  .message-scientist {
+    @apply bg-green-50 border-l-4 border-scientist;
+  }
+
+  .message-user {
+    @apply bg-gray-50 border-l-4 border-gray-400;
+  }
+
+  .message-system {
+    @apply bg-blue-50 border-l-4 border-blue-400 text-center italic;
+  }
+}
+
+.typing-indicator {
+  @apply flex items-center space-x-1;
+}
+
+.typing-dot {
+  @apply w-2 h-2 bg-gray-400 rounded-full animate-pulse;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
