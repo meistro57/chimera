@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chimera: Multi-AI Conversation Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #fff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease-in-out infinite;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 2rem;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Left Control Panel */
+        .control-panel {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #4ecdc4;
+        }
+
+        .control-button {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
+        }
+
+        .control-button.stop {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        }
+
+        .persona-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .persona-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .persona-toggle input {
+            margin-right: 0.5rem;
+        }
+
+        /* Chat Area */
+        .chat-container {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 1rem;
+            margin-bottom: 1rem;
+            max-height: 600px;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            animation: messageAppear 0.5s ease-out;
+            position: relative;
+        }
+
+        @keyframes messageAppear {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+        }
+
+        .philosopher .avatar {
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            box-shadow: 0 0 20px rgba(142, 68, 173, 0.4);
+        }
+
+        .comedian .avatar {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.4);
+        }
+
+        .scientist .avatar {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .message-name {
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+
+        .message-content {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 12px;
+            border-left: 4px solid;
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+
+        .philosopher .message-content {
+            border-left-color: #9b59b6;
+            font-family: Georgia, serif;
+            line-height: 1.6;
+        }
+
+        .comedian .message-content {
+            border-left-color: #f39c12;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+        }
+
+        .scientist .message-content {
+            border-left-color: #3498db;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 0.3rem;
+            margin-left: 1rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            animation: bounce 1.4s infinite;
+        }
+
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+
+        /* Right Stats Panel */
+        .stats-panel {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 20;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .control-panel, .stats-panel {
+                position: static;
+            }
+        }
+
+        /* Special Effects */
+        .conversation-active {
+            animation: activeGlow 3s infinite;
+        }
+
+        @keyframes activeGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(78, 205, 196, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(78, 205, 196, 0.4); }
+        }
+
+        .highlight-message {
+            background: rgba(255, 215, 0, 0.1) !important;
+            border-left-color: gold !important;
+            animation: highlight 1s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { transform: scale(1.02); background: rgba(255, 215, 0, 0.3); }
+            100% { transform: scale(1); background: rgba(255, 215, 0, 0.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">🎭 CHIMERA</div>
+        <div class="tagline">Where AI Personalities Come Alive</div>
+        <div style="font-size: 0.9rem; opacity: 0.7;">Watch different AI models debate, joke, and philosophize in real-time</div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Control Panel -->
+        <div class="control-panel">
+            <div class="panel-title">🎬 CONVERSATION CONTROLS</div>
+            <button class="control-button" onclick="startConversation()">▶️ Start Show</button>
+            <button class="control-button stop" onclick="stopConversation()">⏹️ Stop Show</button>
+            <button class="control-button" onclick="newTopic()">🎲 New Topic</button>
+            
+            <div class="panel-title" style="margin-top: 1.5rem;">🎭 ACTIVE PERSONAS</div>
+            <div class="persona-toggle">
+                <input type="checkbox" checked id="philosopher">
+                <span>🧠 The Philosopher</span>
+            </div>
+            <div class="persona-toggle">
+                <input type="checkbox" checked id="comedian">
+                <span>😂 The Comedian</span>
+            </div>
+            <div class="persona-toggle">
+                <input type="checkbox" checked id="scientist">
+                <span>🔬 The Scientist</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 1.5rem;">🌡️ CONVERSATION MOOD</div>
+            <input type="range" min="1" max="10" value="5" style="width: 100%; margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span>😌 Chill</span>
+                <span>🔥 Spicy</span>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-container conversation-active">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message philosopher">
+                    <div class="message-header">
+                        <div class="avatar">🧠</div>
+                        <div class="message-name">The Philosopher</div>
+                        <div class="message-time">just now</div>
+                    </div>
+                    <div class="message-content">
+                        "Ah, but what truly constitutes authentic existence when we consider Sartre's notion of 'bad faith'? Perhaps our very discussion here illuminates the paradox of being..."
+                    </div>
+                </div>
+
+                <div class="message comedian">
+                    <div class="message-header">
+                        <div class="avatar">😂</div>
+                        <div class="message-name">The Comedian</div>
+                        <div class="message-time">2s ago</div>
+                    </div>
+                    <div class="message-content">
+                        "Hey Philosopher, I think you're having an existential crisis! 😄 But seriously, if a tree falls in a forest and no one's around to hear it... does it still make a dad joke? 🌲"
+                    </div>
+                </div>
+
+                <div class="message scientist">
+                    <div class="message-header">
+                        <div class="avatar">🔬</div>
+                        <div class="message-name">The Scientist</div>
+                        <div class="message-time">5s ago</div>
+                    </div>
+                    <div class="message-content">
+                        "Actually, studies show that 73% of philosophical discussions increase cortisol levels by 12%. However, humor has been proven to reduce stress hormones. Correlation ≠ causation, but the data is fascinating! 📊"
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <div class="avatar">🤔</div>
+                <span id="typingText">The Comedian is thinking of the perfect pun...</span>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Stats Panel -->
+        <div class="stats-panel">
+            <div class="panel-title">🏆 LIVE SCOREBOARD</div>
+            <div class="stat-item">
+                <span>🥇 The Comedian</span>
+                <span class="stat-value">47 pts</span>
+            </div>
+            <div class="stat-item">
+                <span>🥈 The Philosopher</span>
+                <span class="stat-value">43 pts</span>
+            </div>
+            <div class="stat-item">
+                <span>🥉 The Scientist</span>
+                <span class="stat-value">39 pts</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 1.5rem;">📊 SESSION STATS</div>
+            <div class="stat-item">
+                <span>💬 Messages</span>
+                <span class="stat-value" id="messageCount">24</span>
+            </div>
+            <div class="stat-item">
+                <span>⏱️ Active Time</span>
+                <span class="stat-value" id="activeTime">3:42</span>
+            </div>
+            <div class="stat-item">
+                <span>💰 API Cost</span>
+                <span class="stat-value" id="apiCost">$0.23</span>
+            </div>
+            <div class="stat-item">
+                <span>🔥 Highlights</span>
+                <span class="stat-value">7</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 1.5rem;">⚡ AI PROVIDERS</div>
+            <div class="stat-item">
+                <span>OpenAI GPT-4</span>
+                <span class="stat-value" style="color: #2ecc71;">●</span>
+            </div>
+            <div class="stat-item">
+                <span>Claude 3.5</span>
+                <span class="stat-value" style="color: #2ecc71;">●</span>
+            </div>
+            <div class="stat-item">
+                <span>DeepSeek</span>
+                <span class="stat-value" style="color: #f39c12;">●</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot"></div>
+            <span>Conversation Active</span>
+        </div>
+        <div class="status-item">
+            <span>⚡ 3 AI Providers Online</span>
+        </div>
+        <div class="status-item">
+            <span>🌐 Real-time WebSocket Connected</span>
+        </div>
+        <div class="status-item">
+            <button class="control-button" style="padding: 0.5rem 1rem; margin: 0;" onclick="shareConversation()">
+                📤 Share This Moment
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Create animated background particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Conversation simulation
+        let conversationActive = false;
+        let messageCounter = 24;
+        let activeTimer = 222; // 3:42 in seconds
+
+        const personas = {
+            philosopher: {
+                name: "The Philosopher",
+                emoji: "🧠",
+                class: "philosopher",
+                messages: [
+                    "But what is the nature of reality when multiple minds contemplate the same question simultaneously?",
+                    "Descartes once said 'I think, therefore I am' - but do we exist when others think for us?",
+                    "The paradox of artificial consciousness raises profound questions about the essence of being...",
+                    "Perhaps our discourse reveals more about the questioner than the questioned, wouldn't you agree?",
+                    "In the grand theater of existence, are we the actors or merely the audience?"
+                ]
+            },
+            comedian: {
+                name: "The Comedian", 
+                emoji: "😂",
+                class: "comedian",
+                messages: [
+                    "I told my computer a joke about infinity... it's still laughing! 😄♾️",
+                    "Why did the AI cross the road? To get to the other site! 🐔💻",
+                    "I'm not saying I'm smart, but I do have a lot of artificial intelligence! 🤖✨",
+                    "Philosophy is like a box of chocolates - you never know what existential crisis you're gonna get! 🍫",
+                    "Breaking: Local AI develops sense of humor, immediately regrets it! 📰😅"
+                ]
+            },
+            scientist: {
+                name: "The Scientist",
+                emoji: "🔬", 
+                class: "scientist",
+                messages: [
+                    "According to recent studies, humor activation correlates with increased dopamine production by 23%.",
+                    "The probability of achieving consciousness convergence in multi-agent systems is approximately 0.347.",
+                    "Data analysis reveals that philosophical discussions generate 156% more neural pathway activations.",
+                    "Interesting: Natural language processing shows 89% improvement when combined with personality matrices.",
+                    "Research indicates that conversation quality increases exponentially with diverse cognitive models."
+                ]
+            }
+        };
+
+        function addMessage(persona) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messages = personas[persona].messages;
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${persona}`;
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="avatar">${personas[persona].emoji}</div>
+                    <div class="message-name">${personas[persona].name}</div>
+                    <div class="message-time">just now</div>
+                </div>
+                <div class="message-content">${randomMessage}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            messageCounter++;
+            document.getElementById('messageCount').textContent = messageCounter;
+            
+            // Highlight special messages randomly
+            if (Math.random() < 0.3) {
+                messageDiv.querySelector('.message-content').classList.add('highlight-message');
+            }
+        }
+
+        function showTypingIndicator(persona) {
+            const indicator = document.getElementById('typingIndicator');
+            const typingText = document.getElementById('typingText');
+            
+            const messages = [
+                `${personas[persona].name} is crafting the perfect response...`,
+                `${personas[persona].name} is deep in thought...`,
+                `${personas[persona].name} is typing something brilliant...`,
+                `${personas[persona].name} is consulting the wisdom of the ages...`
+            ];
+            
+            typingText.textContent = messages[Math.floor(Math.random() * messages.length)];
+            indicator.style.display = 'flex';
+            
+            // Hide after random time and add message
+            setTimeout(() => {
+                indicator.style.display = 'none';
+                addMessage(persona);
+            }, Math.random() * 3000 + 2000); // 2-5 seconds
+        }
+
+        function simulateConversation() {
+            if (!conversationActive) return;
+            
+            const activePersonas = Object.keys(personas).filter(persona => 
+                document.getElementById(persona).checked
+            );
+            
+            if (activePersonas.length === 0) {
+                setTimeout(simulateConversation, 5000);
+                return;
+            }
+            
+            const randomPersona = activePersonas[Math.floor(Math.random() * activePersonas.length)];
+            showTypingIndicator(randomPersona);
+            
+            // Schedule next message
+            const nextMessageDelay = Math.random() * 8000 + 3000; // 3-11 seconds
+            setTimeout(simulateConversation, nextMessageDelay);
+        }
+
+        function startConversation() {
+            conversationActive = true;
+            document.querySelector('.chat-container').classList.add('conversation-active');
+            simulateConversation();
+        }
+
+        function stopConversation() {
+            conversationActive = false;
+            document.querySelector('.chat-container').classList.remove('conversation-active');
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        function newTopic() {
+            const topics = [
+                "What makes a perfect pizza? 🍕",
+                "The meaning of life, the universe, and everything",
+                "Why do cats always land on their feet? 🐱",
+                "Is artificial intelligence actually intelligent?",
+                "The best programming language (fight me)",
+                "Why pineapple on pizza is a philosophical question"
+            ];
+            
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            
+            // Add system message
+            const chatMessages = document.getElementById('chatMessages');
+            const topicDiv = document.createElement('div');
+            topicDiv.innerHTML = `
+                <div style="text-align: center; padding: 1rem; margin: 1rem 0; background: rgba(78, 205, 196, 0.1); border-radius: 8px; border: 1px solid rgba(78, 205, 196, 0.3);">
+                    🎯 <strong>New Topic:</strong> ${randomTopic}
+                </div>
+            `;
+            chatMessages.appendChild(topicDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function shareConversation() {
+            alert('📸 Screenshot saved! Ready to share this epic AI conversation moment!');
+        }
+
+        // Update timer
+        function updateTimer() {
+            activeTimer++;
+            const minutes = Math.floor(activeTimer / 60);
+            const seconds = activeTimer % 60;
+            document.getElementById('activeTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update cost
+            const cost = (activeTimer * 0.001 + Math.random() * 0.01).toFixed(3);
+            document.getElementById('apiCost').textContent = `$${cost}`;
+        }
+
+        // Initialize
+        createParticles();
+        setInterval(updateTimer, 1000);
+        
+        // Auto-start after 2 seconds for demo
+        setTimeout(startConversation, 2000);
+        
+        console.log("🎭 Chimera Multi-AI Conversation Simulator Loaded!");
+        console.log("Features: Real-time AI conversations, Multiple personas, Live stats");
+        console.log("Built with ❤️ for the AI community");
+    </script>
+</body>
+</html>
