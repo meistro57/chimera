@@ -13,6 +13,10 @@ Imagine watching three fascinating personalities debate life's big questions:
 - 🔬 **The Scientist** - Data-driven, logical, backing everything up with facts and studies
 
 But here's the twist: **they're all different AI models!** OpenAI, Claude, DeepSeek, Gemini, and local models all playing different characters, creating genuinely surprising and entertaining conversations.
+<img width="1140" height="1711" alt="image" src="https://github.com/user-attachments/assets/766c6c66-92f5-4bc7-b7be-deb1c8fa5bec" />
+
+<img width="1138" height="1716" alt="image" src="https://github.com/user-attachments/assets/3c2b9600-b496-44b7-957f-0d388751143e" />
+
 
 ## ✨ Features That'll Blow Your Mind
 
