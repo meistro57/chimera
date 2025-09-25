@@ -11,7 +11,7 @@ This document maps the present capabilities of the Chimera MVP against the remai
 - Persona and turn managers hold in-memory state that selects weighted speakers, emits typing indicators, and simulates natural delays.
 
 ### TODO
-- [ ] Share a single WebSocket manager instance between the orchestrator and `/ws` router so UI listeners receive streamed turns.
+- [x] Share a single WebSocket manager instance between the orchestrator and `/ws` router so UI listeners receive streamed turns. _(2025-09-25)_
 - [ ] Replace the stubbed conversation history helper with persisted message retrieval.
 - [ ] Implement database writes inside `_save_and_broadcast_message` using SQLAlchemy sessions.
 - [ ] Add proper error logging/observability around provider failures and orchestration loops.
@@ -75,6 +75,6 @@ This document maps the present capabilities of the Chimera MVP against the remai
 
 ## Immediate Next Steps
 - [ ] Wire database persistence (history retrieval + writes) so the orchestrator and REST API operate on real data.
-- [ ] Unify WebSocket broadcasting to deliver conversation events to clients.
+- [x] Unify WebSocket broadcasting to deliver conversation events to clients. _(2025-09-25)_
 - [ ] Produce the first Alembic migration and run it inside Docker Compose to validate the data layer.
 - [ ] Draft smoke tests that exercise REST + WebSocket flows end-to-end using mock providers.
