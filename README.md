@@ -4,6 +4,12 @@
 
 Welcome to the most entertaining AI experiment you've ever witnessed! Chimera creates a virtual chatroom where different AI providers take on distinct personalities and engage in dynamic, unpredictable conversations with each other. Think of it as reality TV for artificial intelligence.
 
+## 📋 Current Project Status
+
+**🚧 In Development - MVP Phase**
+
+This project is currently in active development. The core architecture is designed and ready for implementation. See the [Project Roadmap](#-project-roadmap) below for detailed development phases and current progress.
+
 ## 🌟 What Makes This Magical?
 
 Imagine watching three fascinating personalities debate life's big questions:
@@ -102,31 +108,88 @@ Each AI gets dynamically generated system prompts that shape their personality:
 
 *"The Philosopher-Comedian alliance against the Scientist's facts was legendary."* - Definitely Going to Happen
 
-## 🛣️ Roadmap
+## 🛣️ Project Roadmap
 
-### Phase 1: MVP (Current)
-- [x] Core conversation orchestration
-- [x] Basic persona system  
-- [x] Real-time WebSocket updates
-- [x] Multi-provider integration
+### 🎯 Phase 1: MVP Foundation (Weeks 1-4) - **IN PROGRESS**
+**Core Infrastructure & Basic Functionality**
 
-### Phase 2: Entertainment Features
+- [ ] **Backend Setup**
+  - [ ] FastAPI application structure
+  - [ ] PostgreSQL database schema
+  - [ ] Redis integration for real-time messaging
+  - [ ] Basic WebSocket implementation
+
+- [ ] **AI Provider Integration**
+  - [ ] Universal AI provider abstraction layer
+  - [ ] OpenAI GPT integration
+  - [ ] Anthropic Claude integration
+  - [ ] Basic conversation orchestration
+  - [ ] Simple turn-taking logic
+
+- [ ] **Frontend Foundation**
+  - [ ] React application setup
+  - [ ] WebSocket connection handling
+  - [ ] Basic chat interface
+  - [ ] Message display and real-time updates
+
+- [ ] **Core Features**
+  - [ ] Three persona system (Philosopher, Comedian, Scientist)
+  - [ ] Basic conversation flow
+  - [ ] Message persistence
+
+### 🎪 Phase 2: Multi-AI Orchestration (Weeks 5-8)
+**Enhanced Provider Support & Advanced Features**
+
+- [ ] **Provider Expansion**
+  - [ ] DeepSeek integration
+  - [ ] Google Gemini integration
+  - [ ] LM Studio local model support
+  - [ ] Ollama integration
+  - [ ] Streaming response implementation
+  - [ ] Comprehensive error handling
+
+- [ ] **Persona Enhancement**
+  - [ ] Configurable system prompts
+  - [ ] Response style modification
+  - [ ] Personality trait implementation
+  - [ ] Dynamic persona adjustment
+
+- [ ] **Advanced Conversation Flow**
+  - [ ] Natural timing with randomized delays
+  - [ ] Context-aware routing
+  - [ ] Conversation quality scoring
+  - [ ] Typing indicators
+
+### 🚀 Phase 3: Production Features (Weeks 9-12)
+**Performance, Security & Polish**
+
+- [ ] **Performance & Scaling**
+  - [ ] Connection pooling optimization
+  - [ ] Response caching system
+  - [ ] Auto-scaling capabilities
+  - [ ] Comprehensive monitoring
+
+- [ ] **Security & Reliability**
+  - [ ] Secure API key management
+  - [ ] Rate limiting implementation
+  - [ ] Input validation and sanitization
+  - [ ] Circuit breakers and fallbacks
+
+- [ ] **Polish & UX**
+  - [ ] Mobile-responsive design
+  - [ ] Advanced UI components
+  - [ ] Performance optimizations
+  - [ ] Production deployment setup
+
+### 🌟 Phase 4: Community Features (Future)
+**Community Engagement & Advanced Intelligence**
+
 - [ ] Advanced social dynamics (alliances, rivalries)
-- [ ] Conversation topics and controversy system
-- [ ] Performance scoring and leaderboards
-- [ ] Mobile-responsive interface
-
-### Phase 3: Intelligence Layer
-- [ ] Conversation quality analysis
-- [ ] Predictive conversation routing
-- [ ] Cost optimization algorithms
-- [ ] Advanced persona learning
-
-### Phase 4: Community Features
 - [ ] User-created personas
 - [ ] Conversation sharing and highlights
-- [ ] Community voting on best conversations
+- [ ] Performance scoring and leaderboards
 - [ ] Plugin system for custom AI providers
+- [ ] Community voting on best conversations
 
 ## 🤝 Contributing
 
