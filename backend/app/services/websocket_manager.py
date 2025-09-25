@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 from fastapi import WebSocket
 from ..core.redis_client import redis_client
 
@@ -82,3 +82,19 @@ class WebSocketManager:
         }
 
         await self.broadcast_to_conversation(conversation_id, status_message)
+
+
+# Singleton accessor -------------------------------------------------------
+
+_websocket_manager_singleton: Optional[WebSocketManager] = None
+
+
+def get_websocket_manager() -> WebSocketManager:
+    """Return the process-wide WebSocket manager instance."""
+
+    global _websocket_manager_singleton
+
+    if _websocket_manager_singleton is None:
+        _websocket_manager_singleton = WebSocketManager()
+
+    return _websocket_manager_singleton

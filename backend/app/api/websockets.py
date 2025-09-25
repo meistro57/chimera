@@ -1,11 +1,11 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
-from ..services.websocket_manager import WebSocketManager
+from ..services.websocket_manager import get_websocket_manager
 
 router = APIRouter()
 
-# Global WebSocket manager instance
-websocket_manager = WebSocketManager()
+# Global WebSocket manager instance shared across the application
+websocket_manager = get_websocket_manager()
 
 @router.websocket("/conversation/{conversation_id}")
 async def websocket_endpoint(websocket: WebSocket, conversation_id: str):

@@ -10,13 +10,13 @@ from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, Gemini
 from ..core.config import settings
 from .persona_manager import PersonaManager
 from .turn_manager import TurnManager
-from .websocket_manager import WebSocketManager
+from .websocket_manager import WebSocketManager, get_websocket_manager
 
 class ConversationOrchestrator:
-    def __init__(self):
+    def __init__(self, websocket_manager: Optional[WebSocketManager] = None):
         self.persona_manager = PersonaManager()
         self.turn_manager = TurnManager()
-        self.websocket_manager = WebSocketManager()
+        self.websocket_manager = websocket_manager or get_websocket_manager()
         self.providers = self._initialize_providers()
 
     def _initialize_providers(self) -> Dict[str, Any]:
