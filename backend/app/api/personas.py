@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from app.services.persona_manager import PersonaManager
+from app.core.logging_config import conversation_logger
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 
@@ -38,5 +39,12 @@ async def create_persona(persona_data: Dict[str, Any]):
 
     if not success:
         raise HTTPException(status_code=409, detail="Persona name already exists")
+
+    # Log the persona creation
+    conversation_logger.log_event("system", "persona_created", {
+        "name": persona_data["name"],
+        "display_name": persona_data["display_name"],
+        "personality_traits": persona_data["personality_traits"]
+    })
 
     return {"message": "Persona created successfully", "persona": persona_data}

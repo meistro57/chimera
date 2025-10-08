@@ -15,6 +15,7 @@ from .websocket_manager import WebSocketManager, get_websocket_manager
 from .conversation_starter import ConversationStarter
 from .conversation_memory import ConversationMemory
 from .topic_analyzer import TopicAnalyzer
+from ..core.logging_config import conversation_logger
 
 class ConversationOrchestrator:
     def __init__(self, websocket_manager: Optional[WebSocketManager] = None):
@@ -74,6 +75,15 @@ class ConversationOrchestrator:
             # Initialize turn management
             await self.turn_manager.start_conversation(conversation_id, participants)
 
+            # Start logging this conversation
+            conversation_logger.start_conversation_log(conversation_id, participants)
+
+            # Log conversation start event
+            conversation_logger.log_event(conversation_id, "conversation_start", {
+                "participants": participants,
+                "participant_count": len(participants)
+            })
+
             # Send initial message to kick off the conversation
             await self._send_initial_message(conversation_id)
 
@@ -82,6 +92,7 @@ class ConversationOrchestrator:
 
             return True
         except Exception as e:
+            conversation_logger.log_event(conversation_id, "error", {"error": str(e), "context": "conversation_start"})
             print(f"Error starting conversation: {e}")
             return False
 
@@ -93,6 +104,9 @@ class ConversationOrchestrator:
             "sender": "system",
             "timestamp": asyncio.get_event_loop().time()
         }
+
+        # Log the system message
+        conversation_logger.log_message(conversation_id, initial_message)
 
         await self.websocket_manager.broadcast_to_conversation(
             conversation_id,
@@ -130,7 +144,17 @@ class ConversationOrchestrator:
                 await asyncio.sleep(random.uniform(1, 3))
 
         except Exception as e:
+            conversation_logger.log_event(conversation_id, "error", {"error": str(e), "context": "conversation_loop"})
             print(f"Error in conversation loop: {e}")
+
+        # Conversation ended
+        conversation_logger.log_event(conversation_id, "conversation_end", {
+            "total_turns": turn + 1,
+            "reason": "conversation_loop_completed"
+        })
+
+        # Finalize logging
+        conversation_logger.end_conversation_log(conversation_id)
 
     async def _check_topic_routing(self, conversation_id: str, turn_count: int):
         """Check if conversation should shift topics and inject new starter if needed"""
@@ -165,9 +189,18 @@ class ConversationOrchestrator:
                         "timestamp": asyncio.get_event_loop().time()
                     }
 
+                    # Log the routing event
+                    conversation_logger.log_event(conversation_id, "topic_shift", {
+                        "new_topic": new_starter,
+                        "routing_message": routing_message["content"]
+                    })
+
                     # Save and broadcast routing message
                     await self._save_message_to_database(routing_message)
                     await self.websocket_manager.broadcast_to_conversation(conversation_id, routing_message)
+
+                    # Log the routing message itself
+                    conversation_logger.log_message(conversation_id, routing_message)
 
                     # Add brief pause for routing
                     await asyncio.sleep(2)
@@ -288,6 +321,9 @@ class ConversationOrchestrator:
             "timestamp": asyncio.get_event_loop().time()
         }
 
+        # Log the message
+        conversation_logger.log_message(conversation_id, message)
+
         # Save to database
         await self._save_message_to_database(message)
 
@@ -330,3 +366,9 @@ class ConversationOrchestrator:
     async def stop_conversation(self, conversation_id: str):
         """Stop an active conversation"""
         await self.turn_manager.stop_conversation(conversation_id)
+
+        # Log conversation end if we were logging
+        conversation_logger.log_event(conversation_id, "conversation_end", {
+            "reason": "manual_stop"
+        })
+        conversation_logger.end_conversation_log(conversation_id)
