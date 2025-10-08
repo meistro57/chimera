@@ -20,6 +20,7 @@ class Settings(BaseModel):
     anthropic_api_key: str = ""
     deepseek_api_key: str = ""
     google_ai_api_key: str = ""
+    openrouter_api_key: str = ""
 
     # Local AI Providers
     lm_studio_url: str = "http://localhost:1234"

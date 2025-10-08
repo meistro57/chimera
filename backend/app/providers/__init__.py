@@ -5,3 +5,4 @@ from .deepseek_provider import DeepSeekProvider
 from .gemini_provider import GeminiProvider
 from .lm_studio_provider import LMStudioProvider
 from .ollama_provider import OllamaProvider
+from .openrouter_provider import OpenRouterProvider

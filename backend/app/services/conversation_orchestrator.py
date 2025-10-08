@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
 from ..models import Conversation, Message
 from ..providers.base import ChatMessage
-from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider
+from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider, OpenRouterProvider
 from ..core.config import settings
 from .persona_manager import PersonaManager
 from .turn_manager import TurnManager
@@ -40,15 +40,19 @@ class ConversationOrchestrator:
         if settings.google_ai_api_key:
             providers["gemini"] = GeminiProvider(settings.google_ai_api_key)
 
+        # OpenRouter
+        if settings.openrouter_api_key:
+            providers["openrouter"] = OpenRouterProvider(settings.openrouter_api_key, "openai/gpt-3.5-turbo")
+
         # Local providers (always available if endpoints are up)
         providers["lm_studio"] = LMStudioProvider(settings.lm_studio_url)
         providers["ollama"] = OllamaProvider(settings.ollama_url)
 
         # Provider to persona mapping for intelligent selection
         self.provider_persona_assignment = {
-            "philosopher": ["openai", "claude", "deepseek"],  # Prefer OpenAI for deep thinking
-            "comedian": ["claude", "openai", "deepseek"],     # Claude for humor
-            "scientist": ["openai", "deepseek", "claude"],    # DeepSeek for logic
+            "philosopher": ["openai", "claude", "deepseek", "openrouter"],  # Prefer OpenAI for deep thinking
+            "comedian": ["claude", "openai", "deepseek", "openrouter"],     # Claude for humor
+            "scientist": ["openai", "deepseek", "claude", "openrouter"],    # DeepSeek for logic
         }
 
         return providers
