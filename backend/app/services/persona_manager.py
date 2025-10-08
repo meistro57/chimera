@@ -62,7 +62,9 @@ class PersonaManager:
                     "avg_response_length": 120,  # Default
                     "personality_traits": persona.personality_traits or [],
                     "avatar_color": persona.avatar_color,
-                    "custom": True
+                    "custom": True,
+                    "provider": persona.provider or "auto",  # Default to auto-selection
+                    "model": persona.model or None
                 }
         except Exception as e:
             print(f"Note: Custom personas not yet loaded (table may not exist): {e}")
@@ -121,7 +123,9 @@ class PersonaManager:
                 system_prompt=persona_data["system_prompt"],
                 temperature=persona_data["temperature"],
                 avatar_color=persona_data["avatar_color"],
-                personality_traits=persona_data["personality_traits"]
+                personality_traits=persona_data["personality_traits"],
+                provider=persona_data.get("provider", "auto"),
+                model=persona_data.get("model")
             )
             db.add(persona)
             db.commit()
@@ -136,6 +140,8 @@ class PersonaManager:
                 "avg_response_length": 120,
                 "personality_traits": persona.personality_traits,
                 "avatar_color": persona.avatar_color,
+                "provider": persona.provider or "auto",
+                "model": persona.model,
                 "custom": True
             }
             return True
@@ -162,3 +168,36 @@ class PersonaManager:
             "temperature": persona.get("temperature", 0.7),
             "max_tokens": min(persona.get("avg_response_length", 100) * 2, 1500)
         }
+
+    def get_persona_provider_config(self, persona_name: str) -> Dict[str, Any]:
+        """Get provider and model configuration for a persona"""
+        persona = self.get_persona(persona_name)
+        return {
+            "provider": persona.get("provider", "auto"),
+            "model": persona.get("model")
+        }
+
+    def update_persona_provider(self, persona_name: str, provider: str, model: str = None) -> bool:
+        """Update provider and model for a persona"""
+        db: Session = SessionLocal()
+        try:
+            persona_record = db.query(Persona).filter(Persona.name == persona_name).first()
+            if not persona_record:
+                return False
+
+            persona_record.provider = provider
+            persona_record.model = model
+            db.commit()
+
+            # Update in-memory cache
+            if persona_name in self.personas:
+                self.personas[persona_name]["provider"] = provider
+                self.personas[persona_name]["model"] = model
+
+            return True
+        except Exception as e:
+            db.rollback()
+            print(f"Error updating persona provider: {e}")
+            return False
+        finally:
+            db.close()

@@ -373,17 +373,34 @@ async def list_providers():
 
 @router.get("/personas")
 async def list_personas():
-    """List available personas"""
+    """List available personas with provider config"""
     personas = persona_manager.get_all_personas()
     return {
         name: {
             "name": persona["name"],
             "display_name": persona["display_name"],
             "avatar_color": persona["avatar_color"],
-            "personality_traits": persona["personality_traits"]
+            "personality_traits": persona["personality_traits"],
+            "provider": persona.get("provider", "auto"),
+            "model": persona.get("model")
         }
         for name, persona in personas.items()
     }
+
+@router.put("/personas/{persona_name}/provider")
+async def update_persona_provider(persona_name: str, provider_config: Dict[str, Any]):
+    """Update provider and model configuration for a persona"""
+    provider = provider_config.get("provider")
+    model = provider_config.get("model")
+
+    if not provider:
+        raise HTTPException(status_code=400, detail="Provider is required")
+
+    success = persona_manager.update_persona_provider(persona_name, provider, model)
+    if not success:
+        raise HTTPException(status_code=404, detail="Persona not found or update failed")
+
+    return {"message": f"Updated provider configuration for {persona_name}"}
 
 @router.get("/cache/stats")
 async def get_cache_stats():
@@ -406,6 +423,42 @@ async def clear_cache():
         await response_cache.invalidate_persona_cache(persona)
 
     return {"message": "Cache invalidated for all personas"}
+
+@router.post("/providers/config")
+async def update_provider_config(provider_config: Dict[str, Any], db: Session = Depends(get_database)):
+    """Update provider configuration (API keys, etc.)"""
+    provider_name = provider_config.get("provider")
+    api_key = provider_config.get("api_key")
+
+    if not provider_name or not api_key:
+        raise HTTPException(status_code=400, detail="Provider name and API key required")
+
+    # Store in environment or database - for now, we'll just validate
+    # In a real app, you'd encrypt and store these securely
+    import os
+    env_var = f"{provider_name.upper()}_API_KEY"
+    os.environ[env_var] = api_key
+
+    return {"message": f"API key configured for {provider_name}"}
+
+@router.get("/providers/models/{provider}")
+async def get_provider_models(provider: str):
+    """Get available models for a provider"""
+    # This would connect to the provider API to get models
+    # For now, return hardcoded models based on provider
+
+    provider_models = {
+        "openai": ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"],
+        "anthropic": ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"],
+        "deepseek": ["deepseek-chat", "deepseek-coder"],
+        "google": ["gemini-pro", "gemini-pro-vision"],
+        "openrouter": ["auto", "anthropic/claude-3-haiku", "openai/gpt-4"],
+        "lmstudio": ["default"],
+        "ollama": ["llama2", "codellama", "mistral"]
+    }
+
+    models = provider_models.get(provider, [])
+    return {"models": models}
 
 @router.post("/cache/test")
 async def test_cache_performance():
