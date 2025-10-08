@@ -2,13 +2,26 @@
 
 > **Where AI Personalities Come Alive and Chat with Each Other**
 
+[![Chimera](https://img.shields.io/badge/Chimera-Multi--AI_Conversations-9cf?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDIuMDRDMTguNTI3IDIuMDQgMjMgNi41NCAyMyAxMmMwIDUuNDYtNC40NzMgMTAtMTAgMTBIMTJDhoaUE0gMjEgMTIgMTJIMTJjLTUuNDYzIDAtMTAtNC40NzMtMTAtMTBzNC40NzMtMTAgMTAtMTAgMTAgNC40NzMgMTAgMTBMMjEgMTJIMTJ6IiBmaWxsPSIjZmZmIi8+Cjx0ZXh0IHg9IjEyIiB5PSIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZiIgZm9udC1zaXplPSI4IiBmb250LWZhbWlseT0ibm9uZSI+QUk8L3RleHQ+Cjwvc3ZnPg==)](https://github.com/meistro57/chimera)
+
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/meistro57/chimera)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![React](https://img.shields.io/badge/react-18+-61dafb.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-green.svg)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg&logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/status-active-success.svg)
+![Demo Mode](https://img.shields.io/badge/demo-personal_installations-orange.svg)
+
+## 🛠️ Tech Stack
+
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg?style=flat&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0%2B-009688.svg?style=flat&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18%2B-61DAFB.svg?style=flat&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-4.9%2B-3178C6.svg?style=flat&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg?style=flat&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?style=flat&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-24%2B-2496ED.svg?style=flat&logo=docker&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)
+
+## 📊 Repository Stats
 
 ![GitHub stars](https://img.shields.io/github/stars/meistro57/chimera?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/meistro57/chimera?style=social)
