@@ -8,6 +8,7 @@ from ..services.conversation_orchestrator import ConversationOrchestrator
 from ..services.persona_manager import PersonaManager
 from ..services.response_cache import response_cache
 from ..providers.base import ChatMessage
+from ..api.auth import get_current_user
 
 router = APIRouter()
 
@@ -26,60 +27,133 @@ class ConversationResponse(BaseModel):
     created_at: str
 
 @router.get("/conversations")
-async def list_conversations(db: Session = Depends(get_database)):
-    """List all conversations (simplified for MVP)"""
-    # For MVP, return mock data
+async def list_conversations(current_user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+    """List all conversations for the current user"""
+    conversations = db.query(Conversation).filter(Conversation.user_id == current_user.id).all()
+
     return [
         {
-            "id": "demo-conversation",
-            "title": "AI Philosophy Discussion",
-            "participants": ["philosopher", "comedian", "scientist"],
-            "created_at": "2024-01-01T00:00:00Z"
+            "id": conv.id,
+            "user_id": conv.user_id,
+            "title": conv.title or "Untitled Conversation",
+            "participants": conv.ai_participants or [],
+            "created_at": conv.created_at.isoformat() + "Z" if conv.created_at else None,
+            "updated_at": conv.updated_at.isoformat() + "Z" if conv.updated_at else None
         }
+        for conv in conversations
     ]
 
 @router.post("/conversations")
 async def create_conversation(
     conversation_data: ConversationCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_database)
 ):
     """Create a new conversation"""
-    # For MVP, return a simple response
-    conversation_id = f"conv_{__import__('time').time()}"
+    from uuid import uuid4
+
+    # Create conversation in database
+    db_conversation = Conversation(
+        id=str(uuid4()),
+        user_id=current_user.id,
+        title=conversation_data.title,
+        ai_participants=conversation_data.participants,
+        active_personas={}
+    )
+
+    db.add(db_conversation)
+    db.commit()
+    db.refresh(db_conversation)
 
     return {
-        "id": conversation_id,
-        "title": conversation_data.title,
-        "participants": conversation_data.participants,
-        "created_at": __import__('datetime').datetime.utcnow().isoformat() + "Z"
+        "id": db_conversation.id,
+        "user_id": db_conversation.user_id,
+        "title": db_conversation.title,
+        "participants": db_conversation.ai_participants,
+        "created_at": db_conversation.created_at.isoformat() if db_conversation.created_at else None,
+        "updated_at": db_conversation.updated_at.isoformat() if db_conversation.updated_at else None
     }
 
 @router.get("/conversations/{conversation_id}")
-async def get_conversation(conversation_id: str, db: Session = Depends(get_database)):
+async def get_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
     """Get conversation details"""
-    if conversation_id == "demo-conversation":
-        return {
-            "id": "demo-conversation",
-            "title": "AI Philosophy Discussion",
-            "participants": ["philosopher", "comedian", "scientist"],
-            "created_at": "2024-01-01T00:00:00Z"
-        }
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
 
-    raise HTTPException(status_code=404, detail="Conversation not found")
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return {
+        "id": conversation.id,
+        "user_id": conversation.user_id,
+        "title": conversation.title or "Untitled Conversation",
+        "participants": conversation.ai_participants or [],
+        "active_personas": conversation.active_personas or {},
+        "conversation_mode": conversation.conversation_mode,
+        "created_at": conversation.created_at.isoformat() + "Z" if conversation.created_at else None,
+        "updated_at": conversation.updated_at.isoformat() + "Z" if conversation.updated_at else None
+    }
 
 @router.get("/conversations/{conversation_id}/messages")
 async def get_conversation_messages(
     conversation_id: str,
-    db: Session = Depends(get_database)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database),
+    limit: int = 50,
+    offset: int = 0
 ):
     """Get conversation messages"""
-    # For MVP, return empty list
-    return []
+    # Verify user owns this conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get messages for this conversation
+    messages = db.query(Message).filter(
+        Message.conversation_id == conversation_id
+    ).order_by(Message.message_order).offset(offset).limit(limit).all()
+
+    return [
+        {
+            "id": msg.id,
+            "conversation_id": msg.conversation_id,
+            "sender_type": msg.sender_type,
+            "sender_id": msg.sender_id,
+            "persona": msg.persona,
+            "content": msg.content,
+            "metadata": msg.metadata or {},
+            "created_at": msg.created_at.isoformat() + "Z" if msg.created_at else None
+        }
+        for msg in messages
+    ]
 
 @router.post("/conversations/{conversation_id}/start")
-async def start_conversation(conversation_id: str):
+async def start_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
     """Start AI conversation"""
-    participants = ["philosopher", "comedian", "scientist"]
+    # Verify user owns this conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    participants = conversation.ai_participants or ["philosopher", "comedian", "scientist"]
 
     success = await orchestrator.start_conversation(conversation_id, participants)
 
@@ -93,8 +167,21 @@ async def start_conversation(conversation_id: str):
         raise HTTPException(status_code=500, detail="Failed to start conversation")
 
 @router.post("/conversations/{conversation_id}/stop")
-async def stop_conversation(conversation_id: str):
+async def stop_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
     """Stop AI conversation"""
+    # Verify user owns this conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
     await orchestrator.stop_conversation(conversation_id)
 
     return {
