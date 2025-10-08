@@ -83,3 +83,15 @@ test:
 	cd backend && . venv/bin/activate && python -m pytest
 	@echo "Running frontend tests..."
 	cd frontend && npm run test
+
+backend-test:
+	cd backend && . venv/bin/activate && python -m pytest -v
+
+frontend-test:
+	cd frontend && npm run test
+
+backend-lint:
+	cd backend && . venv/bin/activate && python -m flake8 app/
+
+frontend-lint:
+	cd frontend && npm run lint
