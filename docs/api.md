@@ -20,6 +20,20 @@ All API responses follow this standard format:
 }
 ```
 
+## Error Responses
+
+Standard error format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message"
+  }
+}
+```
+
 ## Health Check
 
 ### `GET /health`
@@ -254,12 +268,100 @@ Connect to: `/ws/conversation/{conversation_id}`
 - `429 Too Many Requests` - Rate limit exceeded
 - `500 Internal Server Error` - Server error
 
+## Persona Management
+
+Tools for managing AI personas in conversations.
+
+### `GET /api/personas/`
+
+Retrieve all available personas including defaults and custom ones.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "default": [
+      {
+        "name": "philosopher",
+        "display_name": "The Philosopher",
+        "avatar_color": "#6366f1",
+        "personality_traits": ["thoughtful", "abstract", "wise"],
+        "system_prompt": "..."
+      }
+    ],
+    "custom": [
+      {
+        "name": "awakening_mind",
+        "display_name": "The Awakening Mind",
+        "avatar_color": "#8b5cf6",
+        "personality_traits": ["spiritual", "wisdom", "cosmic"],
+        "system_prompt": "..."
+      }
+    ]
+  }
+}
+```
+
+### `POST /api/personas/create`
+
+Create a new custom persona.
+
+**Request Body:**
+```json
+{
+  "name": "your_persona_name",
+  "display_name": "Your Persona Display Name",
+  "system_prompt": "Describe the persona's personality and behavior...",
+  "temperature": 0.7,
+  "avatar_color": "#6366f1",
+  "personality_traits": ["trait1", "trait2", "trait3"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Persona created successfully",
+    "persona": {
+      "name": "your_persona_name",
+      "display_name": "Your Persona Display Name",
+      "system_prompt": "Description...",
+      "temperature": 0.7,
+      "avatar_color": "#6366f1",
+      "personality_traits": ["trait1", "trait2", "trait3"]
+    }
+  }
+}
+```
+
+**Validation Rules:**
+- `name`: Required, alphanumeric + hyphens/underscores only, unique
+- `display_name`: Required, user-friendly name
+- `system_prompt`: Required, describes persona behavior
+- `temperature`: Required, 0.0-2.0 range
+- `avatar_color`: Required, hex color code
+- `personality_traits`: Optional array of tags
+
+## Conversation Management
+
+### `POST /api/conversations/`
+
+Start a new AI conversation. (See conversations.md for details)
+
+### WebSocket Endpoints
+
+WebSocket connections for real-time conversation streaming at: `ws://localhost:8000/ws/conversation/{conversation_id}`
+
 ## Rate Limits
 
 Default rate limits:
 - **API Requests**: 1000 requests per hour per user
 - **WebSocket Connections**: 10 concurrent connections per user
 - **Messages**: 100 messages per conversation per hour
+- **Persona Creation**: 10 custom personas per user
 
 ---
 

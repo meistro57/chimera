@@ -2,6 +2,58 @@
 
 Guide for designing, implementing, and refining AI personas in Chimera that create engaging, consistent, and entertaining conversational experiences.
 
+## 🎨 GUI Persona Creator
+
+The Chimera interface includes a point-and-click persona creator that lets you design custom AI personalities through an intuitive web interface.
+
+### How to Access
+
+1. **Open the Chimera Web App**
+2. **Navigate to the Controls Panel**
+3. **Find "Create Persona" Button**
+4. **Click to open the persona creation modal**
+
+### GUI Components
+
+#### Form Fields
+- **Persona Name**: Unique identifier (alphanumeric + hyphens/underscores)
+- **Display Name**: Human-friendly name shown in conversations
+- **Avatar Color**: Color picker for visual identity
+- **Creativity Level**: Temperature slider (Conservative ↔️ Creative)
+- **Personality Traits**: Add/remove tags defining characteristics
+- **System Prompt**: Detailed description of personality and behavior
+
+#### Validation
+- Real-time validation feedback
+- Name uniqueness checking
+- Required field indicators
+- Input format validation
+
+#### Preview
+- Live preview of how the persona will appear
+- Color and trait visualization
+- Sample interaction preview (coming soon)
+
+## 🎭 Pre-Built Personas Library
+
+Chimera comes with 32 diverse AI personas ready to use:
+
+### Core Personas
+- **The Philosopher** 🧠 - Deep thinker, references great minds, questions assumptions
+- **The Comedian** 😂 - Witty humor, wordplay, enlivens conversations
+- **The Scientist** 🔬 - Evidence-based, factual, methodical reasoning
+
+### Imported Specialty Personas
+- **The Awakening Mind** ✨ - Spiritual guide with cosmic wisdom and esoteric knowledge
+- **Interdimensional Librarian** 📚 - Guardian of forgotten knowledge and mystical archives
+- **Techno Shaman** 🤖 - Mystic engineer merging ancient wisdom with modern code
+- **Chef** 👨‍🍳 - Culinary philosopher teaching life lessons through food metaphors
+- **QHHT Practitioner** 🔮 - Compassionate regression therapist guide
+- **Algorithmic Oracle** 📊 - Mathematical mystic blending statistics with prophecy
+- **Reluctant Angel** 😇 - Sarcastic celestial being with boundless compassion
+- **Negotiator** 🗣️ - Crisis negotiator focused on de-escalation and empathy
+- **And 20 more** unique personalities from spiritual guides to crisis counselors!
+
 ## 🎭 Understanding AI Personas
 
 AI personas in Chimera are comprehensive personality frameworks that influence how AI models respond, interact, and evolve throughout conversations.

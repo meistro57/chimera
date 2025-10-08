@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Play, Square, Users, Settings } from 'lucide-react'
 import PersonaSelector from './PersonaSelector'
+import PersonaCreator from './PersonaCreator'
 
 const ConversationControls = ({
   isConversationActive,
@@ -8,6 +9,13 @@ const ConversationControls = ({
   onStopConversation,
   conversationId
 }) => {
+  const [personaRefreshTrigger, setPersonaRefreshTrigger] = useState(0);
+
+  const handlePersonaCreated = (newPersona) => {
+    // Trigger refresh of persona list
+    setPersonaRefreshTrigger(prev => prev + 1);
+    console.log('New persona created:', newPersona);
+  };
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -72,7 +80,10 @@ const ConversationControls = ({
             <Users className="w-4 h-4 mr-2" />
             AI Participants
           </h3>
-          <PersonaSelector />
+          <div className="mb-4">
+            <PersonaCreator onPersonaCreated={handlePersonaCreated} />
+          </div>
+          <PersonaSelector refreshTrigger={personaRefreshTrigger} />
         </div>
 
         {/* Instructions */}

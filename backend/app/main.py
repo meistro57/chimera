@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .core.config import settings
 from .core.redis_client import redis_client
-from .api import conversations, websockets
+from .api import conversations, websockets, personas
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,6 +30,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(conversations.router, prefix="/api")
+app.include_router(personas.router, prefix="/api")
 app.include_router(websockets.router, prefix="/ws")
 
 @app.get("/")

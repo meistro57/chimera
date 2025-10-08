@@ -12,11 +12,17 @@ from ..core.config import settings
 from .persona_manager import PersonaManager
 from .turn_manager import TurnManager
 from .websocket_manager import WebSocketManager, get_websocket_manager
+from .conversation_starter import ConversationStarter
+from .conversation_memory import ConversationMemory
+from .topic_analyzer import TopicAnalyzer
 
 class ConversationOrchestrator:
     def __init__(self, websocket_manager: Optional[WebSocketManager] = None):
         self.persona_manager = PersonaManager()
         self.turn_manager = TurnManager()
+        self.conversation_starter = ConversationStarter()
+        self.conversation_memory = ConversationMemory()
+        self.topic_analyzer = TopicAnalyzer()
         self.websocket_manager = websocket_manager or get_websocket_manager()
         self.providers = self._initialize_providers()
 
@@ -56,6 +62,11 @@ class ConversationOrchestrator:
         }
 
         return providers
+
+    async def get_participants(self, conversation_id: str) -> List[str]:
+        """Get participants for a conversation"""
+        state = await self.turn_manager._get_conversation_state(conversation_id)
+        return state.get("participants", []) if state else []
 
     async def start_conversation(self, conversation_id: str, participants: List[str]) -> bool:
         """Start an AI conversation with specified participants"""
@@ -112,11 +123,60 @@ class ConversationOrchestrator:
                 # Update turn state
                 await self.turn_manager.update_last_speaker(conversation_id, next_speaker)
 
+                # Check for topic shift and route conversation if needed
+                await self._check_topic_routing(conversation_id, turn + 1)
+
                 # Add pause between messages
                 await asyncio.sleep(random.uniform(1, 3))
 
         except Exception as e:
             print(f"Error in conversation loop: {e}")
+
+    async def _check_topic_routing(self, conversation_id: str, turn_count: int):
+        """Check if conversation should shift topics and inject new starter if needed"""
+        try:
+            # Get recent messages for analysis
+            db: Session = SessionLocal()
+            try:
+                recent_messages_query = db.query(Message).filter(
+                    Message.conversation_id == uuid.UUID(conversation_id)
+                ).order_by(Message.created_at.desc()).limit(10).all()
+
+                recent_contents = [msg.content for msg in reversed(recent_messages_query)][:10]
+
+                # Analyze current topics
+                topic_scores = self.topic_analyzer.analyze_conversation_topics(recent_contents)
+
+                # Get participants
+                participants = await self.get_participants(conversation_id)
+
+                # Check for topic shift suggestion
+                shift_topic = self.topic_analyzer.suggest_topic_shift(topic_scores, participants, turn_count)
+
+                if shift_topic:
+                    # Generate follow-up topic starter
+                    new_starter = self.topic_analyzer.get_topic_based_follow_up(shift_topic, participants)
+
+                    # Create routing message
+                    routing_message = {
+                        "type": "system",
+                        "content": f"The conversation naturally evolves to a new topic: {new_starter}",
+                        "sender": "system",
+                        "timestamp": asyncio.get_event_loop().time()
+                    }
+
+                    # Save and broadcast routing message
+                    await self._save_message_to_database(routing_message)
+                    await self.websocket_manager.broadcast_to_conversation(conversation_id, routing_message)
+
+                    # Add brief pause for routing
+                    await asyncio.sleep(2)
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            print(f"Error in topic routing: {e}")
 
     async def _show_typing_indicator(self, conversation_id: str, speaker: str):
         """Show typing indicator for the current speaker"""
@@ -138,12 +198,16 @@ class ConversationOrchestrator:
         """Generate a response from the specified persona"""
         try:
             # Get conversation history
-            messages = await self._get_conversation_history(conversation_id)
+            participants = await self.get_participants(conversation_id)
+            messages = await self._get_conversation_history(conversation_id, participants)
+
+            # Enhance context with persona-specific memory
+            enhanced_messages = self.conversation_memory.enhance_context(messages, persona)
 
             # Add persona system prompt
             system_prompt = self.persona_manager.get_system_prompt(persona)
             if system_prompt:
-                messages.insert(0, ChatMessage(role="system", content=system_prompt))
+                enhanced_messages.insert(0, ChatMessage(role="system", content=system_prompt))
 
             # Get provider for this persona
             provider = await self._select_provider_for_persona(persona)
@@ -154,7 +218,7 @@ class ConversationOrchestrator:
             persona_params = self.persona_manager.get_persona_params(persona)
 
             response_text = ""
-            async for chunk in provider.chat(messages, stream=True, **persona_params):
+            async for chunk in provider.chat(enhanced_messages, stream=True, **persona_params):
                 response_text += chunk
 
             return response_text.strip()
@@ -163,7 +227,7 @@ class ConversationOrchestrator:
             print(f"Error generating response for {persona}: {e}")
             return None
 
-    async def _get_conversation_history(self, conversation_id: str) -> List[ChatMessage]:
+    async def _get_conversation_history(self, conversation_id: str, participants: List[str]) -> List[ChatMessage]:
         """Get recent conversation history"""
         db: Session = SessionLocal()
         try:
@@ -177,18 +241,10 @@ class ConversationOrchestrator:
                 role = "user" if msg.sender_type == "user" else "assistant"
                 conversation_messages.append(ChatMessage(role=role, content=msg.content))
 
-            # If no history, start with a random conversation starter
+            # If no history, start with a smart conversation starter
             if not conversation_messages:
-                starters = [
-                    "Let's have an interesting conversation about technology and its impact on society.",
-                    "What are your thoughts on artificial intelligence and its future?",
-                    "How do you think creativity will evolve with AI assistance?",
-                    "What's the most important philosophical question of our time?",
-                    "Can you discuss the balance between privacy and security in the digital age?",
-                    "What makes a joke truly funny, from a philosophical standpoint?",
-                    "How should society approach the ethical development of AI?"
-                ]
-                starter = ChatMessage(role="user", content=random.choice(starters))
+                starter_content = self.conversation_starter.get_random_starter(participants)
+                starter = ChatMessage(role="user", content=starter_content)
                 conversation_messages.append(starter)
 
             return conversation_messages
