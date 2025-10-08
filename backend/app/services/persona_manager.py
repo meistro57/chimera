@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Dict, Any
 from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
@@ -39,6 +41,9 @@ class PersonaManager:
             }
         }
 
+        # Seed custom personas from roles.json if they don't exist
+        self._seed_custom_personas()
+
         # Load custom personas from database
         self._load_custom_personas()
 
@@ -61,6 +66,43 @@ class PersonaManager:
                 }
         except Exception as e:
             print(f"Note: Custom personas not yet loaded (table may not exist): {e}")
+        finally:
+            db.close()
+
+    def _seed_custom_personas(self):
+        """Seed custom personas from roles.json into database if they don't exist"""
+        roles_file = os.path.join(os.path.dirname(__file__), '../../roles.json')
+        if not os.path.exists(roles_file):
+            print("Note: roles.json not found, skipping custom persona seeding")
+            return
+
+        try:
+            with open(roles_file, 'r') as f:
+                roles_data = json.load(f)
+        except Exception as e:
+            print(f"Error loading roles.json: {e}")
+            return
+
+        db: Session = SessionLocal()
+        try:
+            for role in roles_data:
+                # Check if persona already exists
+                existing = db.query(Persona).filter(Persona.name == role["name"]).first()
+                if not existing:
+                    persona = Persona(
+                        name=role["name"],
+                        display_name=role["display_name"],
+                        system_prompt=role["system_prompt"],
+                        temperature=role["temperature"],
+                        avatar_color=role["avatar_color"],
+                        personality_traits=role.get("personality_traits", [])
+                    )
+                    db.add(persona)
+                    print(f"Seeded custom persona: {role['display_name']}")
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error seeding custom personas: {e}")
         finally:
             db.close()
 

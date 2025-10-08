@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+from uuid import uuid4
 from ..core.database import get_database
 from ..models import Conversation, Message, User
 from ..services.conversation_orchestrator import ConversationOrchestrator
@@ -77,10 +78,39 @@ async def create_conversation(
 @router.get("/conversations/{conversation_id}")
 async def get_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_database)
+    db: Session = Depends(get_database),
+    current_user: Optional[User] = Depends(get_current_user)  # Optional for demo
 ):
     """Get conversation details"""
+    # Allow access to demo conversation without authentication
+    if conversation_id == "demo-conversation":
+        conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if not conversation:
+            # Create a demo conversation if it doesn't exist
+            conversation = Conversation(
+                id="demo-conversation",
+                is_public=True,  # Make it public
+                title="Demo AI Conversation",
+                ai_participants=["philosopher", "comedian", "scientist"],
+                active_personas={}
+            )
+            db.add(conversation)
+            db.commit()
+        return {
+            "id": conversation.id,
+            "title": conversation.title or "Untitled Conversation",
+            "participants": conversation.ai_participants or [],
+            "active_personas": conversation.active_personas or {},
+            "conversation_mode": conversation.conversation_mode,
+            "is_public": conversation.is_public or False,
+            "created_at": conversation.created_at.isoformat() + "Z" if conversation.created_at else None,
+            "updated_at": conversation.updated_at.isoformat() + "Z" if conversation.updated_at else None
+        }
+
+    # For non-demo conversations, require authentication
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     conversation = db.query(Conversation).filter(
         Conversation.id == conversation_id,
         Conversation.user_id == current_user.id
@@ -105,20 +135,39 @@ async def get_conversation(
 @router.get("/conversations/{conversation_id}/messages")
 async def get_conversation_messages(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_database),
+    current_user: Optional[User] = Depends(get_current_user),
     limit: int = 50,
     offset: int = 0
 ):
     """Get conversation messages"""
-    # Verify user owns this conversation
-    conversation = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id
-    ).first()
+    # Allow access to demo conversation without authentication
+    if conversation_id == "demo-conversation":
+        conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if not conversation:
+            # Recreate if missing
+            conversation = Conversation(
+                id="demo-conversation",
+                is_public=True,
+                title="Demo AI Conversation",
+                ai_participants=["philosopher", "comedian", "scientist"],
+                active_personas={}
+            )
+            db.add(conversation)
+            db.commit()
+    else:
+        # For non-demo conversations, require authentication
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
 
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        # Verify user owns this conversation
+        conversation = db.query(Conversation).filter(
+            Conversation.id == conversation_id,
+            Conversation.user_id == current_user.id
+        ).first()
+
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
 
     # Get messages for this conversation
     messages = db.query(Message).filter(
@@ -142,10 +191,39 @@ async def get_conversation_messages(
 @router.post("/conversations/{conversation_id}/start")
 async def start_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_database)
+    db: Session = Depends(get_database),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Start AI conversation"""
+    # Allow demo conversation to be started without authentication
+    if conversation_id == "demo-conversation":
+        conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if not conversation:
+            # Recreate if missing
+            conversation = Conversation(
+                id="demo-conversation",
+                is_public=True,
+                title="Demo AI Conversation",
+                ai_participants=["philosopher", "comedian", "scientist"],
+                active_personas={}
+            )
+            db.add(conversation)
+            db.commit()
+        participants = conversation.ai_participants or ["philosopher", "comedian", "scientist"]
+        success = await orchestrator.start_conversation(conversation_id, participants)
+        if success:
+            return {
+                "status": "started",
+                "conversation_id": conversation_id,
+                "participants": participants
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to start conversation")
+
+    # For non-demo conversations, require authentication
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     # Verify user owns this conversation
     conversation = db.query(Conversation).filter(
         Conversation.id == conversation_id,

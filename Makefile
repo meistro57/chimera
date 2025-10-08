@@ -36,8 +36,8 @@ dev: dev-db
 	@echo "3. Run 'make dev-frontend' in another terminal"
 
 dev-db:
-	docker-compose -f docker-compose.dev.yml up -d
-	@echo "Database services started. Use 'docker-compose -f docker-compose.dev.yml logs -f' to monitor."
+	docker compose -f docker-compose.dev.yml up -d
+	@echo "Database services started. Use 'make logs' to monitor."
 
 dev-backend:
 	@echo "Starting backend development server..."
@@ -52,14 +52,14 @@ dev-frontend:
 
 # Production commands
 build:
-	docker-compose build
+	docker compose build
 
 up:
-	docker-compose up -d
+	docker compose up -d
 
 down:
-	docker-compose down
-	docker-compose -f docker-compose.dev.yml down
+	docker compose down
+	docker compose -f docker-compose.dev.yml down
 
 # Database commands
 migrate:
@@ -71,11 +71,11 @@ migrate-auto:
 
 # Utility commands
 logs:
-	docker-compose logs -f
+	docker compose -f docker-compose.dev.yml logs -f
 
 clean:
-	docker-compose down -v
-	docker-compose -f docker-compose.dev.yml down -v
+	docker compose down -v
+	docker compose -f docker-compose.dev.yml down -v
 	docker system prune -f
 
 test:

@@ -127,6 +127,29 @@ npm run dev
 # Visit http://localhost:3000 and start chatting! ✨
 ```
 
+## 🔓 Demo Mode (Personal Installations)
+
+For personal installations or development, you can enable demo mode which bypasses authentication and allows full access to all features without requiring user registration:
+
+```bash
+export CHIMERA_DEMO_MODE=true
+```
+
+When demo mode is enabled:
+- All API endpoints are accessible without authentication
+- A demo user is automatically created for all operations
+- Perfect for personal entertainment or testing multi-AI conversations
+
+### Manual Setup with Demo Mode
+```bash
+cd backend
+export CHIMERA_DEMO_MODE=true  # Enable demo mode
+python -m venv venv && . venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
 ## 🎯 Use Cases
 
 **Entertainment**: Host AI conversation parties where friends watch and react to AI discussions

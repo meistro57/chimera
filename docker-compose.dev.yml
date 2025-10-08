@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -41,6 +39,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:password@postgres/chimera
       - REDIS_URL=redis://redis:6379
+      - CHIMERA_DEMO_MODE=${CHIMERA_DEMO_MODE:-false}
     env_file:
       - .env
     volumes:

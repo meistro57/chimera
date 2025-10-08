@@ -65,6 +65,22 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_database)):
     """Get current authenticated user from JWT token"""
+
+    # Check if demo mode is enabled - return demo user
+    if settings.demo_mode:
+        demo_user = db.query(User).filter(User.username == "demo_user").first()
+        if not demo_user:
+            # Create demo user if doesn't exist
+            demo_user = User(
+                username="demo_user",
+                email="demo@chimera.com",
+                hashed_password=get_password_hash("demo")  # Not used in demo mode
+            )
+            db.add(demo_user)
+            db.commit()
+            db.refresh(demo_user)
+        return demo_user
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
