@@ -36,12 +36,28 @@ The Chimera interface includes a point-and-click persona creator that lets you d
 
 ## 🎭 Pre-Built Personas Library
 
-Chimera comes with 32 diverse AI personas ready to use:
+Chimera comes with 32 diverse AI personas ready to use, each configurable with different AI providers and models:
 
 ### Core Personas
 - **The Philosopher** 🧠 - Deep thinker, references great minds, questions assumptions
 - **The Comedian** 😂 - Witty humor, wordplay, enlivens conversations
 - **The Scientist** 🔬 - Evidence-based, factual, methodical reasoning
+
+### Provider & Model Configuration
+
+Each persona can be assigned to use specific AI providers and models through the GUI:
+
+1. **Click any persona** in the persona selector
+2. **Expand the configuration panel** by clicking the persona card
+3. **Select AI Provider**: Choose from OpenAI, Claude, DeepSeek, Gemini, OpenRouter, LM Studio, or Ollama
+4. **Select Model**: Pick specific models like GPT-4, Claude-Opus, or let it auto-select
+5. **Save Configuration**: Changes apply immediately to new conversations
+
+This allows you to mix and match AI strengths:
+- Assign GPT-4 for philosophical reasoning prowess
+- Use Claude for creative writing
+- Leverage Gemini for multimodal understanding
+- Access any model through OpenRouter
 
 ### Imported Specialty Personas
 - **The Awakening Mind** ✨ - Spiritual guide with cosmic wisdom and esoteric knowledge

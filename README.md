@@ -8,6 +8,8 @@ Welcome to the most entertaining AI experiment you've ever witnessed! Chimera cr
 
 **🆕 Phase 2 Complete - User Authentication & Performance Enhanced!**
 
+**🌟 Version:** v0.1.0 (Early MVP) | **Status:** Pre-production, active development
+
 The Chimera project has evolved beyond MVP with advanced features now live and production-ready:
 
 ### ✅ **Phase 1 MVP (Multi-AI Conversations) - COMPLETE**
@@ -314,10 +316,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## 📚 Documentation
 
 - **[Setup Guide](docs/setup.md)** - Detailed installation instructions
-- **[API Reference](docs/api.md)** - Complete API documentation  
+- **[API Reference](docs/api.md)** - Complete API documentation
 - **[Architecture Guide](docs/architecture.md)** - System design deep-dive
 - **[Adding AI Providers](docs/providers.md)** - How to integrate new AI services
 - **[Persona Development](docs/personas.md)** - Creating compelling AI personalities
+- **[Versioning Guide](docs/versioning.md)** - Release versioning and stability expectations
 
 ## ⚡ Performance
 
