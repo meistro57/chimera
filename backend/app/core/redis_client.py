@@ -1,4 +1,5 @@
 import redis.asyncio as redis
+import json
 from .config import settings
 
 class RedisClient:
@@ -18,6 +19,15 @@ class RedisClient:
 
     async def set(self, key: str, value: str, ex: int = None):
         return await self.redis.set(key, value, ex=ex)
+
+    async def set_json(self, key: str, value: dict, ex: int = None):
+        """Set a JSON object in Redis"""
+        return await self.redis.set(key, json.dumps(value), ex=ex)
+
+    async def get_json(self, key: str):
+        """Get a JSON object from Redis"""
+        value = await self.redis.get(key)
+        return json.loads(value) if value else None
 
     async def delete(self, key: str):
         return await self.redis.delete(key)

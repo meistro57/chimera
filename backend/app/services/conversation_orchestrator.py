@@ -15,6 +15,7 @@ from .websocket_manager import WebSocketManager, get_websocket_manager
 from .conversation_starter import ConversationStarter
 from .conversation_memory import ConversationMemory
 from .topic_analyzer import TopicAnalyzer
+from .response_cache import response_cache
 from ..core.logging_config import conversation_logger
 
 class ConversationOrchestrator:
@@ -247,14 +248,43 @@ class ConversationOrchestrator:
             if not provider:
                 return "I'm having trouble connecting to my AI brain right now! 🤖"
 
-            # Generate response with persona parameters
+            # Get persona parameters
             persona_params = self.persona_manager.get_persona_params(persona)
 
+            # Check for cached response first
+            cached_response = await response_cache.get_cached_response(
+                provider.provider_name, enhanced_messages, persona_params
+            )
+
+            if cached_response:
+                # Log cache hit
+                conversation_logger.log_event(conversation_id, "cache_hit", {
+                    "persona": persona,
+                    "provider": provider.provider_name
+                })
+                return cached_response
+
+            # Generate new response with persona parameters
             response_text = ""
             async for chunk in provider.chat(enhanced_messages, stream=True, **persona_params):
                 response_text += chunk
 
-            return response_text.strip()
+            response_text = response_text.strip()
+
+            # Cache the response for future use
+            if response_text:
+                await response_cache.cache_response(
+                    provider.provider_name, enhanced_messages, persona_params, response_text
+                )
+
+                # Log cache storage
+                conversation_logger.log_event(conversation_id, "cache_store", {
+                    "persona": persona,
+                    "provider": provider.provider_name,
+                    "response_length": len(response_text)
+                })
+
+            return response_text
 
         except Exception as e:
             print(f"Error generating response for {persona}: {e}")

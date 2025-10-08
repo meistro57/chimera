@@ -10,6 +10,7 @@ class AIProvider(ABC):
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key
         self.model = model
+        # Generate provider name from class name (e.g., "OpenAIProvider" -> "openai")
         self.provider_name = self.__class__.__name__.lower().replace('provider', '')
 
     @abstractmethod
