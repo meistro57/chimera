@@ -1,5 +1,60 @@
 # AI Provider Integration Guide
 
+## 🎭 Supported AI Providers
+
+Chimera supports 7 major AI providers, allowing you to mix and match different AI models in your conversations. Each provider has different strengths and pricing models.
+
+### 🧠 **OpenAI** (GPT-4, GPT-3.5-turbo)
+**Best for:** Balanced performance, creativity, and speed
+- **Setup:** Get API key at [platform.openai.com](https://platform.openai.com/api-keys)
+- **Models:** GPT-4, GPT-4-turbo, GPT-3.5-turbo
+- **Pricing:** Moderate (~$0.002/1k tokens)
+- **Env Var:** `OPENAI_API_KEY`
+
+### 🤖 **Anthropic Claude** (Opus, Sonnet, Haiku)
+**Best for:** Safety, analysis, and long-form responses
+- **Setup:** Get API key at [console.anthropic.com](https://console.anthropic.com/)
+- **Models:** Claude-3-opus, claude-3-sonnet, claude-3-haiku
+- **Pricing:** Moderate (~$0.015-0.025/1k tokens)
+- **Env Var:** `ANTHROPIC_API_KEY`
+
+### 🧬 **DeepSeek** (Advanced Reasoning)
+**Best for:** Cost-effective advanced reasoning and coding
+- **Setup:** Get API key at [platform.deepseek.com](https://platform.deepseek.com/)
+- **Models:** DeepSeek-coder, DeepSeek-chat
+- **Pricing:** Low (~$0.0005-0.001/1k tokens)
+- **Env Var:** `DEEPSEEK_API_KEY`
+
+### 🌐 **Google Gemini** (Latest Gemini Models)
+**Best for:** Multimodal capabilities and Google's latest tech
+- **Setup:** Get API key at [makersuite.google.com](https://makersuite.google.com/app/apikey)
+- **Models:** Gemini-1.5-flash, Gemini-1.5-pro
+- **Pricing:** Low (~$0.0003-0.001/1k tokens)
+- **Env Var:** `GOOGLE_API_KEY`
+
+### 🔗 **OpenRouter** (Dozens of Models)
+**Best for:** Maximum model variety through unified API
+- **Setup:** Get API key at [openrouter.ai](https://openrouter.ai/)
+- **Models:** Access to Claude, GPT, Gemini, and many more
+- **Pricing:** Varies by model (adds ~10% fee)
+- **Env Var:** `OPENROUTER_API_KEY`
+
+### 💻 **LM Studio** (Local Models)
+**Best for:** Privacy and zero-cost local AI
+- **Setup:** Download from [lmstudio.ai](https://lmstudio.ai/), start local server
+- **Models:** Any GGUF model you download
+- **Pricing:** Free (your hardware)
+- **Env Var:** `LM_STUDIO_BASE_URL` (default: http://localhost:1234)
+
+### 🦙 **Ollama** (Open-Source Local Models)
+**Best for:** Free open-source models on your machine
+- **Setup:** Install from [ollama.ai](https://ollama.ai/), run `ollama serve`
+- **Models:** Llama, Mistral, Phi, and more (run `ollama pull <model>`)
+- **Pricing:** Free (MIT/Apache licensed)
+- **Env Var:** `OLLAMA_BASE_URL` (default: http://localhost:11434)
+
+---
+
 Guide for integrating new AI services into Chimera's multi-AI conversational system.
 
 ## 🏗️ Provider Architecture Overview

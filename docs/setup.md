@@ -12,10 +12,13 @@ This guide will help you set up Chimera locally for development or production us
 - **Git**: Latest version
 
 **AI Provider API Keys** (at least one required):
-- **OpenAI**: [Get API key](https://platform.openai.com/api-keys)
-- **Anthropic (Claude)**: [Get API key](https://console.anthropic.com/)
-- **DeepSeek**: [Get API key](https://platform.deepseek.com/)
-- **Google AI (Gemini)**: [Get API key](https://makersuite.google.com/app/apikey)
+- **OpenAI**: [Get API key](https://platform.openai.com/api-keys) - Supports GPT-4 and GPT-3.5-turbo
+- **Anthropic Claude**: [Get API key](https://console.anthropic.com/) - Opus, Sonnet, and Haiku models
+- **DeepSeek**: [Get API key](https://platform.deepseek.com/) - Competitive pricing, advanced reasoning
+- **Google Gemini**: [Get API key](https://makersuite.google.com/app/apikey) - Latest Gemini models
+- **OpenRouter**: [Get API key](https://openrouter.ai/) - Access to dozens of additional models
+- **LM Studio**: Local server for private models (optional, for local AI usage)
+- **Ollama**: Run open-source models locally (optional, requires [Ollama installation](https://ollama.ai/))
 
 ## 🚀 Quick Start (Docker - Recommended)
 
@@ -42,9 +45,16 @@ DATABASE_URL=sqlite:///./chimera.db  # or postgresql://...
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# AI Provider API Keys (add at least one)
+# AI Provider API Keys (add at least one - all optional except at least one)
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Local AI Providers (optional)
+LM_STUDIO_BASE_URL=http://localhost:1234  # LM Studio default
+OLLAMA_BASE_URL=http://localhost:11434    # Ollama default
 
 # Application Settings
 SECRET_KEY=your_super_secret_key_here
@@ -67,6 +77,27 @@ docker-compose up -d --build
 
 🎉 **That's it!** You should now have Chimera running with AI personalities ready to chat.
 
+### Alternative: Using Local AI with Docker
+
+If you prefer using local AI models only (no API keys needed):
+
+1. **Install LM Studio or Ollama** on your host machine
+2. **Use the development compose file**:
+   ```bash
+   docker-compose -f docker-compose.dev.yml up --build
+   ```
+
+   This uses Docker's host network mode, allowing the container to connect to local LM Studio/Ollama servers.
+
+### Provider Status
+
+Check `/health/providers` to see which AI providers are active:
+```bash
+curl http://localhost:8000/health/providers
+```
+
+Available providers will show their status, models, and response times.
+
 ## 🛠️ Manual Setup (Development)
 
 For development without Docker:
@@ -87,6 +118,10 @@ alembic upgrade head
 
 # Start Redis (optional for WebSockets)
 redis-server  # In separate terminal
+
+# Optional: Start local AI providers
+# LM Studio: Launch LM Studio app and start local server
+# Ollama: Install and run: ollama serve
 
 # Start backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
