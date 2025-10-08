@@ -312,10 +312,11 @@ class ConversationLogger:
                 time_str = dt.strftime("%H:%M:%S")
                 summary_content += f"- **{event_type}** at {time_str}\n"
 
-        summary_content += f"\n### Session Conclusion
-**Conversation ID**: `{conversation_id}`  
-**Participants**: {', '.join(data['participants'])}  
-**Log File**: {session['filename']}  
+        summary_content += f"""
+### Session Conclusion
+**Conversation ID**: `{conversation_id}`
+**Participants**: {', '.join(data['participants'])}
+**Log File**: {session['filename']}
 **Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 ---

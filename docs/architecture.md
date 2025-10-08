@@ -361,6 +361,39 @@ class WebSocketManager:
 - AI provider availability
 - WebSocket connection health
 
+## 🔧 **Comprehensive Logging System**
+
+Chimera includes an advanced logging architecture that creates detailed markdown files for comprehensive session recording and system monitoring.
+
+### **Log File Structure**
+```
+logs/
+├── conversations/
+│   ├── YYYYMMDD_HHMMSS_{conversation_id}.md    # Detailed session logs
+│   ├── YYYYMMDD_HHMMSS_{conversation_id}.json  # Machine-readable backup
+│   └── system.log                              # General system events
+```
+
+### **Markdown Session Documentation**
+Each conversation generates a timestamped markdown file containing:
+- **Session Metadata**: Participants, AI providers, time duration
+- **Full Conversation Transcript**: All messages with timestamps and persona identification
+- **System Events**: Topic shifts, conversation routing, state changes
+- **Performance Statistics**: Message counts, activity distribution, response metrics
+- **Event Timeline**: Major events and system interactions during session
+
+### **Integration Points**
+- **ConversationOrchestrator**: Real-time logging of messages and routing events
+- **API Endpoints**: System events (persona creation, API calls)
+- **Application Lifecycle**: Startup/shutdown monitoring and error tracking
+- **Error Handling**: Comprehensive error logging across all components
+
+### **Log Management Features**
+- **Automatic Organization**: Timestamped files for easy archiving
+- **Dual Format Storage**: Human-readable markdown + machine-readable JSON
+- **Cleanup Policies**: Configurable retention and size limits
+- **Performance Monitoring**: Non-blocking logging with minimal overhead
+
 ---
 
-This architecture provides a robust, scalable foundation for multi-AI conversations while maintaining performance and reliability at scale.
+This architecture provides a robust, scalable foundation for multi-AI conversations while maintaining performance, reliability, and comprehensive observability at scale.
