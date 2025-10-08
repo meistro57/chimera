@@ -26,7 +26,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -70,7 +70,7 @@ services:
       dockerfile: Dockerfile
     container_name: chimera-frontend
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       chimera-api:
         condition: service_healthy
