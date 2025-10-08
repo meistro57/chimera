@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.types import JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -14,6 +14,8 @@ class Conversation(Base):
     ai_participants = Column(JSON, default=[])
     active_personas = Column(JSON, default={})
     conversation_mode = Column(String(50), default="sequential")
+    is_public = Column(Boolean, default=False)
+    share_token = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

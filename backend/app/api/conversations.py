@@ -9,6 +9,7 @@ from ..services.persona_manager import PersonaManager
 from ..services.response_cache import response_cache
 from ..providers.base import ChatMessage
 from ..api.auth import get_current_user
+import secrets
 
 router = APIRouter()
 
@@ -37,6 +38,8 @@ async def list_conversations(current_user: User = Depends(get_current_user), db:
             "user_id": conv.user_id,
             "title": conv.title or "Untitled Conversation",
             "participants": conv.ai_participants or [],
+            "is_public": conv.is_public or False,
+            "share_token": conv.share_token if conv.is_public else None,
             "created_at": conv.created_at.isoformat() + "Z" if conv.created_at else None,
             "updated_at": conv.updated_at.isoformat() + "Z" if conv.updated_at else None
         }
@@ -50,9 +53,6 @@ async def create_conversation(
     db: Session = Depends(get_database)
 ):
     """Create a new conversation"""
-    from uuid import uuid4
-
-    # Create conversation in database
     db_conversation = Conversation(
         id=str(uuid4()),
         user_id=current_user.id,
@@ -96,6 +96,8 @@ async def get_conversation(
         "participants": conversation.ai_participants or [],
         "active_personas": conversation.active_personas or {},
         "conversation_mode": conversation.conversation_mode,
+        "is_public": conversation.is_public or False,
+        "share_token": conversation.share_token if conversation.is_public else None,
         "created_at": conversation.created_at.isoformat() + "Z" if conversation.created_at else None,
         "updated_at": conversation.updated_at.isoformat() + "Z" if conversation.updated_at else None
     }
@@ -187,6 +189,85 @@ async def stop_conversation(
     return {
         "status": "stopped",
         "conversation_id": conversation_id
+    }
+
+@router.post("/conversations/{conversation_id}/share")
+async def share_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
+    """Toggle sharing status for a conversation"""
+    conversation = db.query(Conversation).filter(
+        Conversation.id == conversation_id,
+        Conversation.user_id == current_user.id
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Toggle sharing status
+    if conversation.is_public:
+        # Make private
+        conversation.is_public = False
+        conversation.share_token = None
+        status = "made_private"
+    else:
+        # Make public
+        conversation.is_public = True
+        conversation.share_token = secrets.token_urlsafe(16)  # Generate a secure token
+        status = "made_public"
+
+    db.commit()
+    db.refresh(conversation)
+
+    return {
+        "status": status,
+        "conversation_id": conversation_id,
+        "is_public": conversation.is_public,
+        "share_token": conversation.share_token
+    }
+
+@router.get("/public/conversations/{share_token}")
+async def get_public_conversation(
+    share_token: str,
+    db: Session = Depends(get_database)
+):
+    """Get public conversation details by share token"""
+    conversation = db.query(Conversation).filter(
+        Conversation.share_token == share_token,
+        Conversation.is_public == True
+    ).first()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Public conversation not found")
+
+    # Get messages
+    messages = db.query(Message).filter(
+        Message.conversation_id == conversation.id
+    ).order_by(Message.message_order).all()
+
+    return {
+        "id": conversation.id,
+        "title": conversation.title or "Untitled Conversation",
+        "participants": conversation.ai_participants or [],
+        "active_personas": conversation.active_personas or {},
+        "conversation_mode": conversation.conversation_mode,
+        "created_at": conversation.created_at.isoformat() + "Z" if conversation.created_at else None,
+        "updated_at": conversation.updated_at.isoformat() + "Z" if conversation.updated_at else None,
+        "messages": [
+            {
+                "id": msg.id,
+                "conversation_id": msg.conversation_id,
+                "sender_type": msg.sender_type,
+                "sender_id": msg.sender_id,
+                "persona": msg.persona,
+                "content": msg.content,
+                "metadata": msg.metadata or {},
+                "created_at": msg.created_at.isoformat() + "Z" if msg.created_at else None
+            }
+            for msg in messages
+        ]
     }
 
 @router.get("/providers")
