@@ -4,10 +4,11 @@ FROM node:18-alpine as builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json ./
+COPY package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with clean cache
+RUN npm cache clean --force && npm ci --only=production
 
 # Copy source code
 COPY . .
