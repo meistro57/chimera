@@ -77,11 +77,102 @@ Check AI provider connectivity and status.
 }
 ```
 
+## Authentication
+
+### User Registration
+
+**Endpoint:** `POST /api/auth/register`
+
+Create a new user account.
+
+**Request Body:**
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid-string",
+  "username": "johndoe",
+  "email": "john@example.com",
+  "created_at": "2025-10-08T13:28:07.123456"
+}
+```
+
+### User Login
+
+**Endpoint:** `POST /api/auth/token`
+
+Authenticate user and receive JWT token for API access.
+
+**Request Headers:**
+```
+Content-Type: application/x-www-form-urlencoded
+```
+
+**Request Body (Form):**
+```
+username=johndoe&password=securepassword123
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "token_type": "bearer"
+}
+```
+
+### Get User Profile
+
+**Endpoint:** `GET /api/auth/me`
+
+Get current user information (requires authentication token).
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+```json
+{
+  "id": "uuid-string",
+  "username": "johndoe",
+  "email": "john@example.com",
+  "created_at": "2025-10-08T13:28:07.123456"
+}
+```
+
+### User Logout
+
+**Endpoint:** `POST /api/auth/logout`
+
+Log out user (primarily client-side token removal).
+
+**Response:**
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
 ## Conversations
 
 ### `GET /api/conversations`
 
 List all conversations for the current user.
+
+**Authentication:** Required (JWT Bearer token)
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
 
 **Query Parameters:**
 - `page` (optional): Page number (default: 1)
@@ -263,10 +354,18 @@ Connect to: `/ws/conversation/{conversation_id}`
 
 - `200 OK` - Request successful
 - `400 Bad Request` - Invalid request parameters
-- `401 Unauthorized` - Authentication required
+- `401 Unauthorized` - Authentication required or invalid credentials
+- `403 Forbidden` - Insufficient permissions for the requested action
 - `404 Not Found` - Resource not found
+- `409 Conflict` - Resource already exists (e.g., duplicate username)
 - `429 Too Many Requests` - Rate limit exceeded
 - `500 Internal Server Error` - Server error
+
+### Authentication Error Details
+
+- `401 Unauthorized`: Missing or invalid JWT token
+- `409 Conflict`: Username or email already registered
+- `403 Forbidden`: Accessing another user's resources
 
 ## Persona Management
 
@@ -354,6 +453,64 @@ Start a new AI conversation. (See conversations.md for details)
 ### WebSocket Endpoints
 
 WebSocket connections for real-time conversation streaming at: `ws://localhost:8000/ws/conversation/{conversation_id}`
+
+## Cache Management
+
+### Cache Statistics
+
+**Endpoint:** `GET /api/cache/stats`
+
+Get current cache performance statistics and Redis information.
+
+**Authentication:** Optional (admin-level access recommended)
+
+**Response:**
+```json
+{
+  "cache_stats": {
+    "cache_size": 47,
+    "keyspace_info": {...},
+    "cache_enabled": true,
+    "cache_hit_rate": "tracked_via_logs"
+  },
+  "ttl_seconds": 3600
+}
+```
+
+### Cache Clearing
+
+**Endpoint:** `POST /api/cache/clear`
+
+Clear all cached responses (admin function - use carefully).
+
+**Authentication:** Required (admin-level access)
+
+**Response:**
+```json
+{
+  "message": "Cache invalidated for all personas"
+}
+```
+
+### Cache Performance Test
+
+**Endpoint:** `POST /api/cache/test`
+
+Test cache performance by triggering a sample AI response (sometimes cached, sometimes fresh).
+
+**Authentication:** Optional
+
+**Response:**
+```json
+{
+  "test_type": "cache_hit",
+  "provider": "openai",
+  "cache_check_ms": 2.45,
+  "total_time_ms": 8.76,
+  "from_cache": true,
+  "response": "The sum of 2 and 2 is 4."
+}
+```
 
 ## Rate Limits
 
