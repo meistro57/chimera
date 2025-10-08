@@ -1,9 +1,10 @@
 import asyncio
 import json
 import random
+import uuid
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from ..core.database import get_database
+from ..core.database import SessionLocal
 from ..models import Conversation, Message
 from ..providers.base import ChatMessage
 from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider
@@ -42,6 +43,13 @@ class ConversationOrchestrator:
         # Local providers (always available if endpoints are up)
         providers["lm_studio"] = LMStudioProvider(settings.lm_studio_url)
         providers["ollama"] = OllamaProvider(settings.ollama_url)
+
+        # Provider to persona mapping for intelligent selection
+        self.provider_persona_assignment = {
+            "philosopher": ["openai", "claude", "deepseek"],  # Prefer OpenAI for deep thinking
+            "comedian": ["claude", "openai", "deepseek"],     # Claude for humor
+            "scientist": ["openai", "deepseek", "claude"],    # DeepSeek for logic
+        }
 
         return providers
 
@@ -133,8 +141,8 @@ class ConversationOrchestrator:
             if system_prompt:
                 messages.insert(0, ChatMessage(role="system", content=system_prompt))
 
-            # Get provider (for MVP, use first available provider)
-            provider = await self._get_available_provider()
+            # Get provider for this persona
+            provider = await self._select_provider_for_persona(persona)
             if not provider:
                 return "I'm having trouble connecting to my AI brain right now! 🤖"
 
@@ -153,17 +161,54 @@ class ConversationOrchestrator:
 
     async def _get_conversation_history(self, conversation_id: str) -> List[ChatMessage]:
         """Get recent conversation history"""
-        # For MVP, return a simple context
-        # In production, this would query the database
-        return [
-            ChatMessage(role="user", content="Let's have an interesting conversation about technology and its impact on society.")
-        ]
+        db: Session = SessionLocal()
+        try:
+            # Query recent messages for this conversation (last 20 for context)
+            messages_query = db.query(Message).filter(
+                Message.conversation_id == uuid.UUID(conversation_id)
+            ).order_by(Message.created_at).limit(20).all()
 
-    async def _get_available_provider(self):
-        """Get the first available AI provider"""
+            conversation_messages = []
+            for msg in messages_query:
+                role = "user" if msg.sender_type == "user" else "assistant"
+                conversation_messages.append(ChatMessage(role=role, content=msg.content))
+
+            # If no history, start with a random conversation starter
+            if not conversation_messages:
+                starters = [
+                    "Let's have an interesting conversation about technology and its impact on society.",
+                    "What are your thoughts on artificial intelligence and its future?",
+                    "How do you think creativity will evolve with AI assistance?",
+                    "What's the most important philosophical question of our time?",
+                    "Can you discuss the balance between privacy and security in the digital age?",
+                    "What makes a joke truly funny, from a philosophical standpoint?",
+                    "How should society approach the ethical development of AI?"
+                ]
+                starter = ChatMessage(role="user", content=random.choice(starters))
+                conversation_messages.append(starter)
+
+            return conversation_messages
+
+        finally:
+            db.close()
+
+    async def _select_provider_for_persona(self, persona: str):
+        """Select the best available AI provider for the given persona"""
+        # Get preferred providers for this persona
+        preferred = self.provider_persona_assignment.get(persona, list(self.providers.keys()))
+
+        # Try preferred providers first
+        for provider_name in preferred:
+            if provider_name in self.providers:
+                provider = self.providers[provider_name]
+                if await provider.health_check():
+                    return provider
+
+        # Fallback to any available provider
         for name, provider in self.providers.items():
             if await provider.health_check():
                 return provider
+
         return None
 
     async def _save_and_broadcast_message(self, conversation_id: str, persona: str, content: str):
@@ -183,11 +228,44 @@ class ConversationOrchestrator:
             "timestamp": asyncio.get_event_loop().time()
         }
 
+        # Save to database
+        await self._save_message_to_database(message)
+
         # Broadcast to websocket clients
         await self.websocket_manager.broadcast_to_conversation(conversation_id, message)
 
-        # TODO: Save to database
-        # This would be implemented with proper database session handling
+    async def _save_message_to_database(self, message_dict: Dict[str, Any]):
+        """Save message to database"""
+        from datetime import datetime
+        import uuid
+
+        # Create a database session
+        db: Session = SessionLocal()
+
+        try:
+            # Create Message instance
+            db_message = Message(
+                id=uuid.uuid4(),
+                conversation_id=uuid.UUID(message_dict["conversation_id"]),
+                sender_type=message_dict["sender_type"],
+                sender_id=message_dict.get("sender_id", ""),
+                persona=message_dict.get("persona", ""),
+                content=message_dict["content"],
+                metadata={
+                    "persona_name": message_dict.get("persona_name", ""),
+                    "avatar_color": message_dict.get("avatar_color", ""),
+                    "timestamp": message_dict["timestamp"]
+                },
+                created_at=datetime.fromtimestamp(message_dict["timestamp"])
+            )
+
+            db.add(db_message)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error saving message to database: {e}")
+        finally:
+            db.close()
 
     async def stop_conversation(self, conversation_id: str):
         """Stop an active conversation"""

@@ -34,13 +34,13 @@ cp .env.example .env
 nano .env
 ```
 
-Required environment variables:
+Required environment variables in backend/.env:
 ```bash
-# Database
-DATABASE_URL=postgresql://postgres:chimera_password@postgres:5432/chimera
+# Database (use SQLite for local dev, PostgreSQL for production)
+DATABASE_URL=sqlite:///./chimera.db  # or postgresql://...
 
 # Redis
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://localhost:6379
 
 # AI Provider API Keys (add at least one)
 OPENAI_API_KEY=your_openai_api_key_here
@@ -82,11 +82,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Start database services
-docker-compose up -d postgres redis
-
-# Run migrations
+# Run migrations (uses SQLite by default)
 alembic upgrade head
+
+# Start Redis (optional for WebSockets)
+redis-server  # In separate terminal
 
 # Start backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

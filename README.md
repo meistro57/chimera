@@ -6,9 +6,9 @@ Welcome to the most entertaining AI experiment you've ever witnessed! Chimera cr
 
 ## 📋 Current Project Status
 
-**🚧 In Development - MVP Phase**
+**🛠️ Developing MVP - Most Core Infrastructure Complete**
 
-This project is currently in active development. The core architecture is designed and ready for implementation. See the [Project Roadmap](#-project-roadmap) below for detailed development phases and current progress.
+The project has implemented key components: backend with FastAPI, database models and migrations (SQLite for development), AI provider interfaces and integrations (OpenAI, Claude), conversation orchestrator with intelligent provider selection per persona, WebSocket real-time messaging, message persistence, React frontend with chat components and hooks, three core personas, and basic conversation flow. Currently refining conversation starter system and preparing for end-to-end testing.
 
 ## 🌟 What Makes This Magical?
 
@@ -44,28 +44,42 @@ But here's the twist: **they're all different AI models!** OpenAI, Claude, DeepS
 - **Performance Scoring**: Track which AI persona is "winning" conversations
 
 ### 🛠️ Built for Developers
-- **Modern Tech Stack**: FastAPI + React + PostgreSQL + Redis
+- **Modern Tech Stack**: FastAPI + React + SQLite/PostgreSQL + Redis
 - **Docker Everything**: One command deployment with docker-compose
 - **Comprehensive API**: RESTful endpoints + WebSocket real-time updates
 - **Extensible Architecture**: Easy to add new AI providers or personalities
 
 ## 🚀 Quick Start
 
-Get your AI chatroom running in under 5 minutes:
+Get your AI chatroom running in under 10 minutes:
 
 ```bash
 # Clone the repo
 git clone https://github.com/yourusername/chimera.git
 cd chimera
 
-# Set up your environment
-cp .env.example .env
-# Add your API keys for OpenAI, Claude, etc.
+# Set up development environment
+make dev
 
-# Launch everything with Docker
-docker-compose up --build
+# In separate terminals:
+# Terminal 1: Backend
+make dev-backend
 
-# Visit http://localhost:3000 and watch the magic happen! ✨
+# Terminal 2: Frontend
+make dev-frontend
+
+# Or set up manually:
+cd backend
+python -m venv venv && . venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head  # Apply DB migrations
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+cd ../frontend
+npm install
+npm run dev
+
+# Visit http://localhost:3000 and start chatting! ✨
 ```
 
 ## 🎯 Use Cases
@@ -110,32 +124,33 @@ Each AI gets dynamically generated system prompts that shape their personality:
 
 ## 🛣️ Project Roadmap
 
-### 🎯 Phase 1: MVP Foundation (Weeks 1-4) - **IN PROGRESS**
+### 🎯 Phase 1: MVP Foundation (Weeks 1-4) - **MOSTLY COMPLETE**
 **Core Infrastructure & Basic Functionality**
 
-- [ ] **Backend Setup**
-  - [ ] FastAPI application structure
-  - [ ] PostgreSQL database schema
-  - [ ] Redis integration for real-time messaging
-  - [ ] Basic WebSocket implementation
+- [x] **Backend Setup**
+  - [x] FastAPI application structure
+  - [x] SQLAlchemy database models and migrations (SQLite for dev)
+  - [x] Redis integration for real-time messaging
+  - [x] WebSocket implementation
 
-- [ ] **AI Provider Integration**
-  - [ ] Universal AI provider abstraction layer
-  - [ ] OpenAI GPT integration
-  - [ ] Anthropic Claude integration
-  - [ ] Basic conversation orchestration
-  - [ ] Simple turn-taking logic
+- [x] **AI Provider Integration**
+  - [x] Universal AI provider abstraction layer
+  - [x] OpenAI GPT integration with streaming
+  - [x] Anthropic Claude integration with streaming
+  - [x] Intelligent provider selection per persona
+  - [x] Provider health monitoring and failover
 
-- [ ] **Frontend Foundation**
-  - [ ] React application setup
-  - [ ] WebSocket connection handling
-  - [ ] Basic chat interface
-  - [ ] Message display and real-time updates
+- [x] **Frontend Foundation**
+  - [x] React application setup with Vite
+  - [x] WebSocket connection handling with reconnection
+  - [x] Basic chat interface with message components
+  - [x] State management with custom hooks
 
-- [ ] **Core Features**
-  - [ ] Three persona system (Philosopher, Comedian, Scientist)
-  - [ ] Basic conversation flow
-  - [ ] Message persistence
+- [x] **Core Features**
+  - [x] Three persona system (Philosopher, Comedian, Scientist)
+  - [x] Basic conversation flow with turn-taking
+  - [x] Message persistence to database
+  - [x] Conversation history and starter system
 
 ### 🎪 Phase 2: Multi-AI Orchestration (Weeks 5-8)
 **Enhanced Provider Support & Advanced Features**

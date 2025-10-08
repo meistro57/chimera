@@ -14,7 +14,7 @@ class Message(Base):
     sender_id = Column(String(100))  # AI provider/model identifier
     persona = Column(String(50))  # Applied persona if AI message
     content = Column(Text, nullable=False)
-    metadata = Column(JSONB, default={})
+    message_metadata = Column(JSONB, default={})
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     message_order = Column(BigInteger, autoincrement=True)
 

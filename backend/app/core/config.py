@@ -1,16 +1,16 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
 from typing import List
 import os
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     # Application
     app_name: str = "Chimera Multi-AI Chat"
     debug: bool = True
     secret_key: str = "your-secret-key-here"
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"])
 
     # Database
-    database_url: str = "postgresql://postgres:password@localhost:5432/chimera"
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./chimera.db")
 
     # Redis
     redis_url: str = "redis://localhost:6379"
@@ -24,8 +24,5 @@ class Settings(BaseSettings):
     # Local AI Providers
     lm_studio_url: str = "http://localhost:1234"
     ollama_url: str = "http://localhost:11434"
-
-    class Config:
-        env_file = ".env"
 
 settings = Settings()

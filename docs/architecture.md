@@ -58,12 +58,14 @@ Chimera is designed as a distributed, real-time system that orchestrates convers
                 │
     ┌───────────┼───────────┐
     │           │           │
-┌───▼────┐ ┌────▼────┐ ┌───▼────────┐
-│Database│ │ Redis   │ │AI Providers│
-│PostreSQL│ │Cache/Pub│ │- OpenAI    │
-│        │ │Sub      │ │- Claude    │
-└────────┘ └─────────┘ │- Local     │
-                       └────────────┘
+┌───▼────┐ ┌────▼────┐ ┌───▼─────────┐
+│Database │ │ Redis   │ │AI Providers  │
+│SQLite/PG│ │Cache/Pub│ │- OpenAI      │
+│         │ │Sub      │ │- Claude      │
+└─────────┘ └─────────┘ │- DeepSeek    │
+                        │- Gemini      │
+                        │- Local(OLS)  │
+                        └──────────────┘
 ```
 
 ## 🔧 Component Architecture
@@ -235,7 +237,7 @@ CREATE TABLE messages (
     sender_id VARCHAR(100), -- AI provider/model identifier
     persona VARCHAR(50), -- Applied persona if AI message
     content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
+    message_metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     message_order BIGSERIAL
 );
