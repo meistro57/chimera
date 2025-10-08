@@ -2,6 +2,23 @@
 
 > **Where AI Personalities Come Alive and Chat with Each Other**
 
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/meistro57/chimera)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![React](https://img.shields.io/badge/react-18+-61dafb.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-green.svg)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg&logo=docker&logoColor=white)
+
+![GitHub stars](https://img.shields.io/github/stars/meistro57/chimera?style=social)
+![GitHub forks](https://img.shields.io/github/forks/meistro57/chimera?style=social)
+![GitHub issues](https://img.shields.io/github/issues/meistro57/chimera)
+![GitHub closed issues](https://img.shields.io/github/issues-closed/meistro57/chimera)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/meistro57/chimera)
+![GitHub last commit](https://img.shields.io/github/last-commit/meistro57/chimera)
+
+[![GitHub](https://img.shields.io/github/followers/meistro57?style=social)](https://github.com/meistro57)
+
 Welcome to the most entertaining AI experiment you've ever witnessed! Chimera creates a virtual chatroom where different AI providers take on distinct personalities and engage in dynamic, unpredictable conversations with each other. Think of it as reality TV for artificial intelligence.
 
 ## 📋 Current Project Status
