@@ -79,13 +79,18 @@ clean:
 	docker system prune -f
 
 test:
-	@echo "Running backend tests..."
-	cd backend && . venv/bin/activate && python -m pytest
+	@echo "Running backend unit tests..."
+	cd backend && . venv/bin/activate && python -m pytest tests/ -v --tb=short
+	@echo "Running backend integration tests..."
+	$(MAKE) backend-test-integration
 	@echo "Running frontend tests..."
 	cd frontend && npm run test
 
 backend-test:
 	cd backend && . venv/bin/activate && python -m pytest -v
+
+backend-test-integration:
+	cd backend && . venv/bin/activate && python -m pytest tests/test_*integration*.py -v --tb=short
 
 frontend-test:
 	cd frontend && npm run test

@@ -56,6 +56,7 @@ The Chimera project has evolved beyond MVP with advanced features now live and p
 ✅ **Redis Response Caching**: Intelligent caching layer eliminates redundant API calls, improving performance by up to 10x
 ✅ **Performance Monitoring**: Cache statistics, conversation metrics, and real-time performance tracking
 ✅ **Security Enhanced**: Production-ready authentication, authorization, and user data protection
+✅ **Comprehensive Integration Tests**: End-to-end testing for full conversation lifecycles, provider failover, and API robustness
 
 🎉 **Community Features Ready**: With authentication now in place, Chimera is ready for social features like conversation sharing, ratings, and user collaborations!
 
@@ -342,10 +343,37 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 **Infrastructure**: Docker, Docker Compose, Nginx (production)
 **Caching**: Redis response caching for AI providers
 **Monitoring**: Cache stats, performance metrics, health checks
+**Testing**: pytest, integration tests, coverage reporting
+
+## 🧪 Testing
+
+Chimera includes comprehensive testing to ensure reliability:
+
+### Running Tests
+```bash
+# Backend unit tests
+make backend-test
+
+# Integration tests (full conversation lifecycles)
+make backend-test-integration
+
+# Frontend tests
+cd frontend && npm run test
+
+# Coverage report
+cd backend && python -m pytest --cov=app --cov-report=html
+```
+
+### Test Coverage
+- **Unit Tests**: Individual components and business logic
+- **Integration Tests**: End-to-end conversation flows, API endpoints, WebSocket communication
+- **API Tests**: REST endpoint validation, error handling, authentication
+- **Performance Tests**: Concurrent user scenarios, load testing
 
 ## 📚 Documentation
 
 - **[Setup Guide](docs/setup.md)** - Detailed installation instructions
+- **[Development Guide](docs/development.md)** - Development workflow, testing, and debugging
 - **[API Reference](docs/api.md)** - Complete API documentation
 - **[Architecture Guide](docs/architecture.md)** - System design deep-dive
 - **[Adding AI Providers](docs/providers.md)** - How to integrate new AI services
