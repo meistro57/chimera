@@ -20,9 +20,14 @@ router = APIRouter()
 orchestrator = ConversationOrchestrator()
 persona_manager = PersonaManager()
 
-class ConversationCreate(BaseModel):
-    title: str = "AI Conversation"
-    participants: List[str] = ["philosopher", "comedian", "scientist"]
+def get_provider_keys():
+    return {
+        "openai": os.getenv("OPENAI_API_KEY"),
+        "claude": os.getenv("ANTHROPIC_API_KEY"),
+        "deepseek": os.getenv("DEEPSEEK_API_KEY"),
+        "google": os.getenv("GOOGLE_AI_API_KEY"),
+        "openrouter": os.getenv("OPENROUTER_API_KEY")
+    }
 
 class ConversationResponse(BaseModel):
     id: str
@@ -31,8 +36,10 @@ class ConversationResponse(BaseModel):
     created_at: str
 
 @router.get("/conversations")
-async def list_conversations(current_user: User = Depends(get_current_user), db: Session = Depends(get_database)):
+async def list_conversations(current_user: Optional[User] = Depends(get_current_user), db: Session = Depends(get_database)):
     """List all conversations for the current user"""
+    if not current_user:
+        return []  # Return empty for anonymous users
     conversations = db.query(Conversation).filter(Conversation.user_id == current_user.id).all()
 
     return [
@@ -52,13 +59,13 @@ async def list_conversations(current_user: User = Depends(get_current_user), db:
 @router.post("/conversations")
 async def create_conversation(
     conversation_data: ConversationCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_database)
+    db: Session = Depends(get_database),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """Create a new conversation"""
     db_conversation = Conversation(
         id=str(uuid4()),
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
         title=conversation_data.title,
         ai_participants=conversation_data.participants,
         active_personas={}
@@ -226,7 +233,7 @@ async def start_conversation(
 
     # For non-demo conversations, require authentication
     if not current_user:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        return []  # Skip ownership check for anonymous
 
     # Verify user owns this conversation
     conversation = db.query(Conversation).filter(
@@ -253,10 +260,19 @@ async def start_conversation(
 @router.post("/conversations/{conversation_id}/stop")
 async def stop_conversation(
     conversation_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user),
     db: Session = Depends(get_database)
 ):
     """Stop AI conversation"""
+    # Allow stopping for anonymous users if they have access
+    if not current_user:
+        # For anonymous, just stop without ownership check
+        await orchestrator.stop_conversation(conversation_id)
+        return {
+            "status": "stopped",
+            "conversation_id": conversation_id
+        }
+
     # Verify user owns this conversation
     conversation = db.query(Conversation).filter(
         Conversation.id == conversation_id,
@@ -274,16 +290,9 @@ async def stop_conversation(
     }
 
 @router.post("/conversations/{conversation_id}/share")
-async def share_conversation(
-    conversation_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_database)
-):
-    """Toggle sharing status for a conversation"""
-    conversation = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == current_user.id
-    ).first()
+async def share_conversation(conversation_id: str, db: Session = Depends(get_database)):
+    """Toggle sharing status for a conversation - anonymous access"""
+    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
 
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -464,49 +473,75 @@ async def test_provider(request_data: Dict[str, str]):
     if not provider_name:
         raise HTTPException(status_code=400, detail="Provider name required")
 
-    if provider_name not in orchestrator.providers:
-        raise HTTPException(status_code=404, detail=f"Provider {provider_name} not configured")
-
-    provider = orchestrator.providers[provider_name]
-
     try:
-        # Perform a basic health check
-        healthy = await provider.health_check()
-        if not healthy:
-            return {"status": "failed", "message": "Provider health check failed"}
+        # Check if provider is configured
+        if provider_name not in orchestrator.providers:
+            # Try to reload providers first
+            await orchestrator.reload_providers()
+        
+        if provider_name not in orchestrator.providers:
+            raise HTTPException(status_code=404, detail=f"Provider {provider_name} not configured")
+
+        provider = orchestrator.providers[provider_name]
+
+        # Perform a basic health check first
+        try:
+            healthy = await provider.health_check()
+            if not healthy:
+                return {"status": "failed", "message": "Provider health check failed - check endpoint connectivity"}
+        except Exception as health_error:
+            return {"status": "failed", "message": f"Health check failed: {str(health_error)}"}
 
         # Try a simple chat completion to verify the key works
         test_messages = [
-            ChatMessage(role="user", content="Hello, please respond with just 'OK' if you can read this.")
+            ChatMessage(role="user", content="Say 'OK' if you can read this.")
         ]
 
-        # Get response (limit to short response)
-        response_text = ""
-        async for chunk in provider.chat(test_messages, stream=False, max_tokens=10):
-            response_text += chunk
+        try:
+            # Try non-streaming first for simplicity
+            response_text = ""
+            try:
+                # Non-streaming chat (sync response)
+                full_response = await provider.chat(test_messages, stream=False, max_tokens=20)
+                response_text = ''.join(full_response) if isinstance(full_response, list) else full_response
+            except AttributeError:
+                # If non-streaming not supported, try streaming
+                async for chunk in provider.chat(test_messages, stream=True, max_tokens=20):
+                    response_text += chunk
 
-        response_text = response_text.strip()
+            response_text = response_text.strip().lower()
 
-        # Check if we got a reasonable response
-        if len(response_text) > 0 and "ok" in response_text.lower():
-            return {
-                "status": "success",
-                "message": "API key is working correctly",
-                "provider": provider_name,
-                "response_sample": response_text[:50] + "..." if len(response_text) > 50 else response_text
-            }
-        else:
-            return {
-                "status": "warning",
-                "message": "Got response but it may not be optimal",
-                "provider": provider_name,
-                "response_sample": response_text[:100] + "..." if len(response_text) > 100 else response_text
-            }
+            # Check if we got a reasonable response
+            if "ok" in response_text:
+                return {
+                    "status": "success",
+                    "message": "API key is working correctly",
+                    "provider": provider_name,
+                    "response_sample": response_text.capitalize()
+                }
+            else:
+                return {
+                    "status": "warning", 
+                    "message": "Response received but unexpected content",
+                    "provider": provider_name,
+                    "response_sample": response_text[:50] + "..." if len(response_text) > 50 else response_text
+                }
 
+        except Exception as chat_error:
+            error_msg = str(chat_error).lower()
+            if "unauthorized" in error_msg or "invalid api key" in error_msg:
+                return {"status": "failed", "message": "Invalid API key - check your key and try again"}
+            elif "rate limit" in error_msg:
+                return {"status": "failed", "message": "Rate limited - try again later or check quota"}
+            else:
+                return {"status": "failed", "message": f"Chat test failed: {str(chat_error)}"}
+
+    except HTTPException:
+        raise
     except Exception as e:
         return {
-            "status": "failed",
-            "message": f"API test failed: {str(e)}",
+            "status": "error",
+            "message": f"Unexpected error: {str(e)}",
             "provider": provider_name
         }
 

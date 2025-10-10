@@ -35,7 +35,7 @@ function App() {
 
   useEffect(() => {
     // Only connect to WebSocket when component mounts if there's an actual conversation
-    if (currentConversationId && currentConversationId !== 'demo-conversation') {
+    if (currentConversationId) {
       connect(currentConversationId)
     }
 

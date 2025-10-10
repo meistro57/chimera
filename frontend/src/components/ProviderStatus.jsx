@@ -7,8 +7,7 @@ const providerIcons = {
   'google': '🌐',
   'openrouter': '🎯',
   'lmstudio': '🖥️',
-  'ollama': '🐪',
-  'demo': '🎭'
+  'ollama': '🐪'
 }
 
 const ProviderStatus = () => {
@@ -62,8 +61,8 @@ const ProviderStatus = () => {
     )
   }
 
-  const configuredProviders = providers.filter(p => p.type !== 'demo')
-  const hasConfiguredProviders = configuredProviders.some(p => p.configured)
+  const configuredProviders = providers.filter(p => p.configured)
+  const hasConfiguredProviders = configuredProviders.length > 0
 
   return (
     <div className="flex items-center space-x-2 relative">
@@ -71,7 +70,7 @@ const ProviderStatus = () => {
       <span className={`text-xs font-medium ${
         hasConfiguredProviders ? 'text-green-600' : 'text-amber-600'
       }`}>
-        {hasConfiguredProviders ? 'Live AIs' : 'Demo Mode'}
+        {hasConfiguredProviders ? 'Live AIs' : 'Setup Required'}
       </span>
 
       {/* Provider icons */}
@@ -80,9 +79,9 @@ const ProviderStatus = () => {
           <div
             key={provider.type}
             className={`w-5 h-5 rounded-full flex items-center justify-center text-xs cursor-pointer hover:scale-110 transition border ${
-              provider.type === 'demo'
-                ? 'bg-amber-100 border-amber-300 hover:bg-amber-200'
-                : 'bg-green-100 border-green-300 hover:bg-green-200'
+              provider.healthy 
+                ? 'bg-green-100 border-green-300 hover:bg-green-200' 
+                : 'bg-yellow-100 border-yellow-300 hover:bg-yellow-200'
             }`}
             title={`${provider.name} - ${provider.models?.length || 0} models`}
             onClick={() => setShowDetails(!showDetails)}
