@@ -5,6 +5,47 @@ All notable changes to Chimera project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-10-10
+
+### 🎯 Added - Full AI Control System
+
+#### Advanced Provider/Model Management
+- **Granular AI Assignment**: Complete manual control over which AI provider and specific model powers each persona (GPT-4, Claude Opus, OpenRouter models, etc.)
+- **Per-Persona Customization**: Each personality can use different AI brains - Philosopher with GPT-4, Scientist with Claude, Comedian with OpenRouter
+- **Real-Time Configuration**: Instant application of provider/model settings without server restart
+- **Flexible Routing**: Manual overrides respected first, with intelligent auto-selection as fallback
+
+#### API Validation & Testing System
+- **Built-in API Test Suite**: Test feature validates API keys with actual provider calls before conversations start
+- **Connection Validation**: Verifies API key authenticity and provider connectivity
+- **Error Diagnostics**: Detailed error messages help troubleshoot API key issues
+
+#### Advanced Status Monitoring
+- **Real-Time Provider Dashboard**: Header shows configured vs. demo providers with visual icons (🤖 OpenAI, 🎯 OpenRouter, etc.)
+- **Provider Health Status**: Live indicators of which AI providers are active and healthy
+- **Model-Level Granularity**: View specific models assigned to personas (GPT-4, Claude-3-Opus, etc.)
+- **Configuration Transparency**: Detailed tooltip showing current AI assignments per persona
+
+#### Professional Control Features
+- **Persona Selector UI**: Expandable cards with provider/model assignment controls
+- **Intelligent Provider Selection**: System prioritizes user settings over automatic defaults
+- **Validation Safeguards**: Test API keys before starting expensive conversations
+- **Zero-Downtime Updates**: Configuration changes apply instantly without service interruption
+
+### 🔧 Technical Improvements
+- **Provider Override Logic**: Enhanced orchestrator respects manual persona configurations
+- **Model Parameter Handling**: Backend properly processes and forwards model selections to providers
+- **API Key Persistence**: Temporary storage with immediate reload capability during sessions
+- **Enhanced Error Handling**: Better diagnostics for provider connectivity issues
+
+### 📚 Documentation Updates
+- **Provider Control Guide**: Complete documentation for persona-specific AI assignment
+- **API Reference Updates**: New endpoints for testing and configuration
+- **Advanced Usage Examples**: Guide for creating custom AI ensembles
+- **Troubleshooting Guide**: Solutions for common provider configuration issues
+
+---
+
 ## [0.1.1] - 2025-10-09
 
 ### ✅ Fixed

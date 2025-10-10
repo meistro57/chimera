@@ -80,11 +80,6 @@ const PersonaCards = ({ participants, setParticipants }) => {
               </select>
 
               <div className="mb-4">
-                <label className="block text-sm mb-2">Create New Persona</label>
-            onGoClick={() => {/* Open PersonaCreator modal */}}
-              </div>
-
-              <div className="mb-4">
                 <label className="block text-sm mb-2">Temperature: {tempValues[index]}</label>
                 <input
                   type="range"

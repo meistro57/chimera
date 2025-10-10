@@ -209,7 +209,9 @@ async def start_conversation(
             )
             db.add(conversation)
             db.commit()
+            db.refresh(conversation)
         participants = conversation.ai_participants or ["philosopher", "comedian", "scientist"]
+        print(f"DEBUG: Starting demo conversation with participants: {participants}")
         success = await orchestrator.start_conversation(conversation_id, participants)
         if success:
             return {
@@ -433,32 +435,68 @@ async def update_provider_config(provider_config: Dict[str, Any], db: Session = 
     if not provider_name or not api_key:
         raise HTTPException(status_code=400, detail="Provider name and API key required")
 
-    # Store in environment or database - for now, we'll just validate
-    # In a real app, you'd encrypt and store these securely
+    # Store in environment variable
     import os
     env_var = f"{provider_name.upper()}_API_KEY"
     os.environ[env_var] = api_key
 
+    # Reload the orchestrator providers to pick up the new API key
+    await orchestrator.reload_providers()
+
     return {"message": f"API key configured for {provider_name}"}
 
-@router.get("/providers/models/{provider}")
-async def get_provider_models(provider: str):
-    """Get available models for a provider"""
-    # This would connect to the provider API to get models
-    # For now, return hardcoded models based on provider
+@router.post("/providers/test")
+async def test_provider(request_data: Dict[str, str]):
+    """Test a specific provider to ensure API key is working"""
+    provider_name = request_data.get("provider")
+    if not provider_name:
+        raise HTTPException(status_code=400, detail="Provider name required")
 
-    provider_models = {
-        "openai": ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"],
-        "anthropic": ["claude-3-haiku-20240307", "claude-3-sonnet-20240229", "claude-3-opus-20240229"],
-        "deepseek": ["deepseek-chat", "deepseek-coder"],
-        "google": ["gemini-pro", "gemini-pro-vision"],
-        "openrouter": ["auto", "anthropic/claude-3-haiku", "openai/gpt-4"],
-        "lmstudio": ["default"],
-        "ollama": ["llama2", "codellama", "mistral"]
-    }
+    if provider_name not in orchestrator.providers:
+        raise HTTPException(status_code=404, detail=f"Provider {provider_name} not configured")
 
-    models = provider_models.get(provider, [])
-    return {"models": models}
+    provider = orchestrator.providers[provider_name]
+
+    try:
+        # Perform a basic health check
+        healthy = await provider.health_check()
+        if not healthy:
+            return {"status": "failed", "message": "Provider health check failed"}
+
+        # Try a simple chat completion to verify the key works
+        test_messages = [
+            ChatMessage(role="user", content="Hello, please respond with just 'OK' if you can read this.")
+        ]
+
+        # Get response (limit to short response)
+        response_text = ""
+        async for chunk in provider.chat(test_messages, stream=False, max_tokens=10):
+            response_text += chunk
+
+        response_text = response_text.strip()
+
+        # Check if we got a reasonable response
+        if len(response_text) > 0 and "ok" in response_text.lower():
+            return {
+                "status": "success",
+                "message": "API key is working correctly",
+                "provider": provider_name,
+                "response_sample": response_text[:50] + "..." if len(response_text) > 50 else response_text
+            }
+        else:
+            return {
+                "status": "warning",
+                "message": "Got response but it may not be optimal",
+                "provider": provider_name,
+                "response_sample": response_text[:100] + "..." if len(response_text) > 100 else response_text
+            }
+
+    except Exception as e:
+        return {
+            "status": "failed",
+            "message": f"API test failed: {str(e)}",
+            "provider": provider_name
+        }
 
 @router.post("/cache/test")
 async def test_cache_performance():

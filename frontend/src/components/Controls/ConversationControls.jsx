@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Play, Square, Users, Settings, Share2, Check, Copy, Zap, Key } from 'lucide-react'
 import PersonaSelector from './PersonaSelector'
 import PersonaCreator from './PersonaCreator'
-import ConnectionManager from './ConnectionManager'
+import ConnectionWizard from './PersonaCreator'
+// import ConnectionManager from './ConnectionManager'
 
 const ConversationControls = ({
   isConversationActive,
@@ -220,20 +221,23 @@ const ConversationControls = ({
           </div>
         )}
 
-        {activeTab === 'providers' && (
-          <div>
-            <div className="mb-6">
-              <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                <Key className="w-5 h-5 mr-2" />
-                API Key Management
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Configure API keys for different AI providers. Required keys will be used when personas are assigned to specific providers.
-              </p>
+            <div>
+              <div className="mb-6">
+                <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+                  <Key className="w-5 h-5 mr-2" />
+                  API Key Management
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure API keys for different AI providers. Use the Settings gear icon in the header.
+                </p>
+                <button
+                  onClick={() => {/* Open settings modal somehow */}}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Open Settings
+                </button>
+              </div>
             </div>
-            <ConnectionManager />
-          </div>
-        )}
       </div>
     </div>
   )

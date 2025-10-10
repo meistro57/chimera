@@ -4,7 +4,7 @@
 
 [![Chimera](https://img.shields.io/badge/Chimera-Multi--AI_Conversations-9cf?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDIuMDRDMTguNTI3IDIuMDQgMjMgNi41NCAyMyAxMmMwIDUuNDYtNC40NzMgMTAtMTAgMTBIMTJDhoaUE0gMjEgMTIgMTJIMTJjLTUuNDYzIDAtMTAtNC40NzMtMTAtMTBzNC40NzMtMTAgMTAtMTAgMTAgNC40NzMgMTAgMTBMMjEgMTJIMTJ6IiBmaWxsPSIjZmZmIi8+Cjx0ZXh0IHg9IjEyIiB5PSIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjZiIgZm9udC1zaXplPSI4IiBmb250LWZhbWlseT0ibm9uZSI+QUk8L3RleHQ+Cjwvc3ZnPg==)](https://github.com/meistro57/chimera)
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/meistro57/chimera)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
@@ -36,29 +36,18 @@ Welcome to the most entertaining AI experiment you've ever witnessed! Chimera cr
 
 ## 📋 Current Project Status
 
-**🆕 Phase 2 Complete - User Authentication & Performance Enhanced!**
+**🆕 Phase 2.1 Complete - Full AI Control & Validation System Added!**
 
-**🌟 Version:** v0.1.0 (Early MVP) | **Status:** Pre-production, active development
+**🌟 Version:** v0.2.0 (Advanced Control) | **Status:** Pre-production, active development
 
-The Chimera project has evolved beyond MVP with advanced features now live and production-ready:
+The Chimera system now provides unprecedented control over AI conversations with professional-grade management:
 
-### ✅ **Phase 1 MVP (Multi-AI Conversations) - COMPLETE**
-✅ **Full Conversation Flow**: Smart conversation starters, natural persona transitions, intelligent memory context, and dynamic topic-based routing keep AI personalities engaging naturally
-✅ **32+ AI Personas**: 3 default personalities (Philosopher, Comic, Scientist) plus 29 imported rich custom personas including spiritual guides, mathematicians, chefs, mystics, and more
-✅ **Persona Creator GUI**: Popout modal to design and save custom AI personalities with full control over behavior, traits, and appearance
-✅ **7 AI Providers**: Complete integration with OpenAI, Anthropic Claude, DeepSeek, Google Gemini, LM Studio, Ollama, and OpenRouter
-✅ **Real-Time Chat**: WebSocket-powered live conversations with typing indicators, intelligent timing, and message persistence
-✅ **Production Ready**: Docker deployment, security, error handling, and scalable architecture
-
-### ✅ **Phase 2 Features - JUST COMPLETED**
-✅ **User Authentication**: JWT-based authentication with bcrypt password hashing - fully secure user accounts and data isolation
-✅ **User-Scoped Conversations**: All conversations are now private per user with complete data isolation
-✅ **Redis Response Caching**: Intelligent caching layer eliminates redundant API calls, improving performance by up to 10x
-✅ **Performance Monitoring**: Cache statistics, conversation metrics, and real-time performance tracking
-✅ **Security Enhanced**: Production-ready authentication, authorization, and user data protection
-✅ **Comprehensive Integration Tests**: End-to-end testing for full conversation lifecycles, provider failover, and API robustness
-
-🎉 **Community Features Ready**: With authentication now in place, Chimera is ready for social features like conversation sharing, ratings, and user collaborations!
+### ✅ **Phase 2.1 AI Control System - JUST COMPLETED**
+✅ **Provider/Model Control Per Persona**: Complete manual override for which AI brain each personality uses - specify exact provider and model (GPT-4, Claude Opus, etc.)
+✅ **API Key Validation & Testing**: Built-in testing system to verify API keys work before conversations start
+✅ **Smart Provider Status Dashboard**: Real-time visual indicators showing which AI providers are active and configured
+✅ **Intelligent Provider Routing**: Manual overrides respected first, then automatic selection with graceful fallbacks
+✅ **Advanced Configuration UI**: Expandable persona cards with full provider/model customization
 
 ## 🌟 What Makes This Magical?
 
@@ -90,6 +79,13 @@ But here's the twist: **they're all different AI models!** OpenAI, Claude, DeepS
 - **7 AI Providers**: OpenAI, Anthropic Claude, DeepSeek, Google Gemini, LM Studio, Ollama, OpenRouter
 - **Dynamic Provider Selection**: The system intelligently routes conversations to the best AI for each persona
 - **Seamless Failover**: If one AI is down, others step in without missing a beat
+
+### 🎛️ **Advanced AI Control System**
+- **Persona-Specific Brain Selection**: Assign different AI providers and models to each personality - Philosopher could use GPT-4 while Scientist uses DeepSeek
+- **Granular Model Control**: Choose specific models within providers (Claude-3-Opus, GPT-4-Turbo, Gemini-Pro, etc.)
+- **API Key Validation**: Built-in testing to verify your API keys work before starting conversations
+- **Visual Provider Dashboard**: Header shows active AI providers with real-time status indicators
+- **Manual Override with Auto-Fallback**: Full manual control with automatic selection as backup
 
 ### 🎬 Real-Time Drama
 - **Live Conversation Streaming**: Watch conversations unfold in real-time with WebSocket magic

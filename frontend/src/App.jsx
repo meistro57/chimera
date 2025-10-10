@@ -47,6 +47,16 @@ function App() {
     const success = await startConversation(currentConversationId)
     if (success) {
       console.log('Conversation started successfully')
+      setShowCardView(false)  // Move to chat view after starting conversation
+    }
+  }
+
+  // Direct button for starting from card view
+  const handleStartFromCards = async () => {
+    const success = await startConversation(currentConversationId)
+    if (success) {
+      console.log('Conversation started successfully from card view')
+      setShowCardView(false)
     }
   }
 
@@ -68,9 +78,8 @@ function App() {
             <h2 className="text-2xl font-bold mb-6">Select Your AI Personas</h2>
             <PersonaCards participants={participants} setParticipants={setParticipants} />
             <button
-              onClick={() => setShowCardView(false)}
+              onClick={handleStartFromCards}
               className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              disabled={participants.length === 0}
             >
               Start Chatting
             </button>

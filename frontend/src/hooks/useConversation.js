@@ -32,12 +32,15 @@ export const useConversation = () => {
 
   const startConversation = useCallback(async (conversationId) => {
     try {
+      console.log('DEBUG: Starting conversation for', conversationId)
       setLoading(true)
       setError(null)
 
       const response = await api.post(`/conversations/${conversationId}/start`)
+      console.log('DEBUG: Start conversation response:', response)
 
       if (response.status === 'started') {
+        console.log('DEBUG: Conversation started successfully')
         setIsConversationActive(true)
         addMessage({
           id: `system_${Date.now()}`,
@@ -49,8 +52,10 @@ export const useConversation = () => {
         return true
       }
 
+      console.log('DEBUG: Conversation failed to start, response:', response)
       return false
     } catch (err) {
+      console.error('DEBUG: Error starting conversation:', err)
       setError(err.message)
       console.error('Error starting conversation:', err)
       return false

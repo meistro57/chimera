@@ -286,8 +286,6 @@ Get all available AI personas.
 }
 ```
 
-## AI Providers
-
 ### `GET /api/providers`
 
 Get all available AI providers and their status.
@@ -300,19 +298,71 @@ Get all available AI providers and their status.
     "providers": [
       {
         "name": "openai",
-        "display_name": "OpenAI",
-        "status": "active",
-        "available_models": [
-          {
-            "name": "gpt-4",
-            "display_name": "GPT-4",
-            "context_length": 8192,
-            "cost_per_1k_tokens": 0.03
-          }
-        ]
+        "type": "openai",
+        "healthy": true,
+        "models": ["gpt-4", "gpt-3.5-turbo"]
+      },
+      {
+        "name": "claude",
+        "type": "claude",
+        "healthy": true,
+        "models": ["claude-3-sonnet", "claude-3-haiku"]
       }
     ]
   }
+}
+```
+
+### `POST /api/providers/config`
+
+Configure API keys for AI providers.
+
+**Authentication:** Optional (works in demo mode)
+
+**Request Body:**
+```json
+{
+  "provider": "openrouter",
+  "api_key": "sk-or-v1-..."
+}
+```
+
+**Response:**
+```json
+{
+  "message": "API key configured for openrouter"
+}
+```
+
+### `POST /api/providers/test`
+
+Test an AI provider's API key and connectivity.
+
+**Authentication:** Optional (works in demo mode)
+
+**Request Body:**
+```json
+{
+  "provider": "openrouter"
+}
+```
+
+**Response (Success):**
+```json
+{
+  "status": "success",
+  "message": "API key is working correctly",
+  "provider": "openrouter",
+  "response_sample": "OK"
+}
+```
+
+**Response (Error):**
+```json
+{
+  "status": "failed",
+  "message": "API test failed: Invalid API key",
+  "provider": "openrouter"
 }
 ```
 
@@ -443,6 +493,37 @@ Create a new custom persona.
 - `temperature`: Required, 0.0-2.0 range
 - `avatar_color`: Required, hex color code
 - `personality_traits`: Optional array of tags
+
+### `PUT /api/personas/{persona_name}/provider`
+
+Configure which AI provider and model a persona should use. Set to "auto" for automatic selection.
+
+**Authentication:** Optional (works in demo mode)
+
+**Path Parameters:**
+- `persona_name`: Name of the persona (e.g., "philosopher")
+
+**Request Body:**
+```json
+{
+  "provider": "openrouter",
+  "model": "openai/gpt-4"
+}
+```
+
+Or set to auto-selection:
+```json
+{
+  "provider": "auto"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Updated provider configuration for philosopher"
+}
+```
 
 ## Conversation Management
 

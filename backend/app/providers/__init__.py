@@ -6,3 +6,4 @@ from .gemini_provider import GeminiProvider
 from .lm_studio_provider import LMStudioProvider
 from .ollama_provider import OllamaProvider
 from .openrouter_provider import OpenRouterProvider
+from .demo_provider import DemoProvider

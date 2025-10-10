@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
 from ..models import Conversation, Message
 from ..providers.base import ChatMessage
-from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider, OpenRouterProvider
+from ..providers.base import ChatMessage
+from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider, OpenRouterProvider, DemoProvider
 from ..core.config import settings
 from .persona_manager import PersonaManager
 from .turn_manager import TurnManager
@@ -56,11 +57,14 @@ class ConversationOrchestrator:
         providers["lm_studio"] = LMStudioProvider(settings.lm_studio_url)
         providers["ollama"] = OllamaProvider(settings.ollama_url)
 
+        # Demo provider (always available for testing without API keys)
+        providers["demo"] = DemoProvider()
+
         # Provider to persona mapping for intelligent selection
         self.provider_persona_assignment = {
-            "philosopher": ["openai", "claude", "deepseek", "openrouter"],  # Prefer OpenAI for deep thinking
-            "comedian": ["claude", "openai", "deepseek", "openrouter"],     # Claude for humor
-            "scientist": ["openai", "deepseek", "claude", "openrouter"],    # DeepSeek for logic
+            "philosopher": ["openai", "claude", "deepseek", "openrouter", "demo"],  # Prefer OpenAI for deep thinking, then OpenRouter
+            "comedian": ["claude", "openai", "deepseek", "openrouter", "demo"],     # Claude for humor
+            "scientist": ["openai", "deepseek", "claude", "openrouter", "demo"],    # DeepSeek for logic
         }
 
         return providers
@@ -73,6 +77,8 @@ class ConversationOrchestrator:
     async def start_conversation(self, conversation_id: str, participants: List[str]) -> bool:
         """Start an AI conversation with specified participants"""
         try:
+            print(f"DEBUG: start_conversation called with conversation_id={conversation_id}, participants={participants}")
+
             # Initialize turn management
             await self.turn_manager.start_conversation(conversation_id, participants)
 
@@ -91,10 +97,11 @@ class ConversationOrchestrator:
             # Start the conversation loop
             asyncio.create_task(self._conversation_loop(conversation_id))
 
+            print(f"DEBUG: Conversation started successfully for {conversation_id}")
             return True
         except Exception as e:
             conversation_logger.log_event(conversation_id, "error", {"error": str(e), "context": "conversation_start"})
-            print(f"Error starting conversation: {e}")
+            print(f"DEBUG: Error starting conversation: {e}")
             return False
 
     async def _send_initial_message(self, conversation_id: str):
@@ -251,6 +258,13 @@ class ConversationOrchestrator:
             # Get persona parameters
             persona_params = self.persona_manager.get_persona_params(persona)
 
+            # Override model if manually configured for this persona
+            persona_provider_config = self.persona_manager.get_persona_provider_config(persona)
+            if persona_provider_config.get("model"):
+                # Override the model parameter if manually configured
+                persona_params["model"] = persona_provider_config["model"]
+                print(f"DEBUG: Overriding model to {persona_provider_config['model']} for persona {persona}")
+
             # Check for cached response first
             cached_response = await response_cache.get_cached_response(
                 provider.provider_name, enhanced_messages, persona_params
@@ -317,21 +331,55 @@ class ConversationOrchestrator:
 
     async def _select_provider_for_persona(self, persona: str):
         """Select the best available AI provider for the given persona"""
-        # Get preferred providers for this persona
-        preferred = self.provider_persona_assignment.get(persona, list(self.providers.keys()))
+        print(f"DEBUG: Selecting provider for persona {persona}")
 
-        # Try preferred providers first
-        for provider_name in preferred:
-            if provider_name in self.providers:
+        # First, check if persona has manual provider configuration
+        persona_config = self.persona_manager.get_persona_provider_config(persona)
+        print(f"DEBUG: Persona config: {persona_config}")
+
+        if persona_config.get("provider") and persona_config["provider"] != "auto":
+            manual_provider = persona_config["provider"]
+            manual_model = persona_config.get("model")
+
+            # Check if the manually configured provider is available and healthy
+            if manual_provider in self.providers:
+                provider = self.providers[manual_provider]
+                if await provider.health_check():
+                    print(f"DEBUG: Using manually configured provider {manual_provider} for persona {persona}")
+                    # Set the model if specified, otherwise use provider's default
+                    if manual_model:
+                        provider.model = manual_model
+                        print(f"DEBUG: Using manually configured model {manual_model} for persona {persona}")
+                    return provider
+                else:
+                    print(f"DEBUG: Manually configured provider {manual_provider} is not healthy")
+
+        # Auto-selection fallbacks (only if manual provider is not healthy or set to "auto")
+        print(f"DEBUG: Falling back to auto-selection for persona {persona}")
+
+        # Try preferred providers first (excluding demo if real providers are available)
+        preferred_providers = self.provider_persona_assignment.get(persona, list(self.providers.keys()))
+        for provider_name in preferred_providers:
+            if provider_name != "demo" and provider_name in self.providers:
                 provider = self.providers[provider_name]
                 if await provider.health_check():
+                    print(f"DEBUG: Selected preferred provider {provider_name} for persona {persona}")
                     return provider
 
-        # Fallback to any available provider
+        # If no preferred providers, try any real provider
         for name, provider in self.providers.items():
-            if await provider.health_check():
-                return provider
+            if name != "demo":  # Skip demo provider if possible
+                if await provider.health_check():
+                    print(f"DEBUG: Selected fallback provider {name} for persona {persona}")
+                    return provider
 
+        # Last resort: use demo provider
+        demo_provider = self.providers.get("demo")
+        if demo_provider and await demo_provider.health_check():
+            print(f"DEBUG: Using demo provider for persona {persona}")
+            return demo_provider
+
+        print(f"DEBUG: No provider available for persona {persona}")
         return None
 
     async def _save_and_broadcast_message(self, conversation_id: str, persona: str, content: str):
@@ -392,6 +440,12 @@ class ConversationOrchestrator:
             print(f"Error saving message to database: {e}")
         finally:
             db.close()
+
+    async def reload_providers(self):
+        """Reload providers to pick up new API keys"""
+        print("DEBUG: Reloading providers")
+        self.providers = self._initialize_providers()
+        print(f"DEBUG: Reloaded providers: {list(self.providers.keys())}")
 
     async def stop_conversation(self, conversation_id: str):
         """Stop an active conversation"""
