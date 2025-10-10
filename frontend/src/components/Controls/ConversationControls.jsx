@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Play, Square, Users, Settings, Share2, Check, Copy, Zap, Key } from 'lucide-react'
 import PersonaSelector from './PersonaSelector'
 import PersonaCreator from './PersonaCreator'
-import ConnectionWizard from './PersonaCreator'
-// import ConnectionManager from './ConnectionManager'
+import ConnectionWizard from '../ConnectionWizard'
 
 const ConversationControls = ({
   isConversationActive,
@@ -17,19 +16,15 @@ const ConversationControls = ({
   const [showShareLink, setShowShareLink] = useState(false);
   const [activeTab, setActiveTab] = useState('controls');
 
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   const handlePersonaCreated = (newPersona) => {
     // Trigger refresh of persona list
     setPersonaRefreshTrigger(prev => prev + 1);
     console.log('New persona created:', newPersona);
   }
 
-  useEffect(() => {
-    if (conversationId) {
-      fetchConversationDetails();
-    }
-  }, [conversationId])
-
-  const fetchConversationDetails = async () => {
+  const fetchConversationDetails = useCallback(async () => {
     try {
       // Note: This assumes we have auth token in localStorage or similar
       const response = await fetch(`/api/conversations/${conversationId}`);
@@ -41,7 +36,13 @@ const ConversationControls = ({
     } catch (error) {
       console.error('Failed to fetch conversation details:', error);
     }
-  }
+  }, [conversationId])
+
+  useEffect(() => {
+    if (conversationId) {
+      fetchConversationDetails();
+    }
+  }, [conversationId, fetchConversationDetails])
 
   const toggleShare = async () => {
     try {
@@ -221,23 +222,25 @@ const ConversationControls = ({
           </div>
         )}
 
-            <div>
-              <div className="mb-6">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                  <Key className="w-5 h-5 mr-2" />
-                  API Key Management
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Configure API keys for different AI providers. Use the Settings gear icon in the header.
-                </p>
-                <button
-                  onClick={() => {/* Open settings modal somehow */}}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Open Settings
-                </button>
-              </div>
+        {activeTab === 'providers' && (
+          <div>
+            <div className="mb-6">
+              <h3 className="font-medium text-gray-900 mb-3 flex items-center">
+                <Key className="w-5 h-5 mr-2" />
+                API Key Management
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Configure API keys for different AI providers. Use the Settings gear icon in the header.
+              </p>
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Open Settings
+              </button>
             </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from uuid import uuid4
 from ..core.database import get_database
+from ..core.config import settings
 from ..models import Conversation, Message, User
 from ..services.conversation_orchestrator import ConversationOrchestrator
 from ..services.persona_manager import PersonaManager
@@ -11,6 +12,7 @@ from ..services.response_cache import response_cache
 from ..providers.base import ChatMessage
 from ..api.auth import get_current_user
 import secrets
+import os
 
 router = APIRouter()
 
@@ -182,7 +184,7 @@ async def get_conversation_messages(
             "sender_id": msg.sender_id,
             "persona": msg.persona,
             "content": msg.content,
-            "metadata": msg.metadata or {},
+            "metadata": msg.extra_metadata or {},
             "created_at": msg.created_at.isoformat() + "Z" if msg.created_at else None
         }
         for msg in messages
@@ -343,7 +345,7 @@ async def get_public_conversation(
                 "sender_id": msg.sender_id,
                 "persona": msg.persona,
                 "content": msg.content,
-                "metadata": msg.metadata or {},
+                "metadata": msg.extra_metadata or {},
                 "created_at": msg.created_at.isoformat() + "Z" if msg.created_at else None
             }
             for msg in messages
@@ -447,7 +449,6 @@ async def update_provider_config(provider_config: Dict[str, Any], db: Session = 
         raise HTTPException(status_code=400, detail="Provider name and API key required")
 
     # Store in environment variable
-    import os
     env_var = f"{provider_name.upper()}_API_KEY"
     os.environ[env_var] = api_key
 

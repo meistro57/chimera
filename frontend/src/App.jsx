@@ -42,7 +42,7 @@ function App() {
     return () => {
       disconnect()
     }
-  }, [currentConversationId])
+  }, [currentConversationId, connect, disconnect])
 
   const handleStartConversation = async () => {
     const success = await startConversation(currentConversationId)

@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
 from ..models import Conversation, Message
 from ..providers.base import ChatMessage
-from ..providers.base import ChatMessage
 from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider, OpenRouterProvider, DemoProvider
 from ..core.config import settings
 from .persona_manager import PersonaManager
@@ -430,7 +429,7 @@ class ConversationOrchestrator:
                 sender_id=message_dict.get("sender_id", ""),
                 persona=message_dict.get("persona", ""),
                 content=message_dict["content"],
-                metadata={
+                extra_metadata={
                     "persona_name": message_dict.get("persona_name", ""),
                     "avatar_color": message_dict.get("avatar_color", ""),
                     "timestamp": message_dict["timestamp"]

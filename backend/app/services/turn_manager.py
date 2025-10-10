@@ -1,5 +1,6 @@
 import asyncio
 import random
+import json
 from typing import List, Optional
 from ..core.redis_client import redis_client
 
@@ -19,7 +20,7 @@ class TurnManager:
         # Store in Redis for persistence
         await redis_client.set(
             f"conversation:{conversation_id}:state",
-            str({
+            json.dumps({
                 "participants": participants,
                 "current_turn": 0,
                 "is_active": True,
@@ -78,7 +79,7 @@ class TurnManager:
             # Update Redis
             await redis_client.set(
                 f"conversation:{conversation_id}:state",
-                str(conversation_state),
+                json.dumps(conversation_state),
                 ex=3600
             )
 
@@ -93,7 +94,7 @@ class TurnManager:
             conversation_state["is_active"] = False
             await redis_client.set(
                 f"conversation:{conversation_id}:state",
-                str(conversation_state),
+                json.dumps(conversation_state),
                 ex=3600
             )
 
@@ -107,7 +108,7 @@ class TurnManager:
         state_str = await redis_client.get(f"conversation:{conversation_id}:state")
         if state_str:
             try:
-                state = eval(state_str)  # Note: In production, use json.loads instead
+                state = json.loads(state_str)
                 self.active_conversations[conversation_id] = state
                 return state
             except Exception:
