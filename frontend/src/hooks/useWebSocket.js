@@ -9,7 +9,12 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }) => {
       return
     }
 
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/conversation/${conversationId}`
+    // In development with Docker, connect directly to backend container
+    const backendUrl = process.env.NODE_ENV === 'development' 
+      ? 'ws://backend:8000' 
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+    
+    const wsUrl = `${backendUrl}/ws/conversation/${conversationId}`
 
     setConnectionStatus('Connecting...')
 

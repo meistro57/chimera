@@ -29,29 +29,34 @@ class ConversationOrchestrator:
         self.websocket_manager = websocket_manager or get_websocket_manager()
         self.providers = self._initialize_providers()
 
-    def _initialize_providers(self) -> Dict[str, Any]:
+    def _initialize_providers(self, fresh_settings=None) -> Dict[str, Any]:
         """Initialize all available AI providers"""
+        if fresh_settings:
+            active_settings = fresh_settings
+        else:
+            active_settings = settings
+        
         providers = {}
 
         # OpenAI
-        if settings.openai_api_key:
-            providers["openai"] = OpenAIProvider(settings.openai_api_key, "gpt-3.5-turbo")
+        if active_settings.openai_api_key:
+            providers["openai"] = OpenAIProvider(active_settings.openai_api_key, "gpt-3.5-turbo")
 
         # Claude
-        if settings.anthropic_api_key:
-            providers["claude"] = ClaudeProvider(settings.anthropic_api_key, "claude-3-haiku-20240307")
+        if active_settings.anthropic_api_key:
+            providers["claude"] = ClaudeProvider(active_settings.anthropic_api_key, "claude-3-haiku-20240307")
 
         # DeepSeek
-        if settings.deepseek_api_key:
-            providers["deepseek"] = DeepSeekProvider(settings.deepseek_api_key)
+        if active_settings.deepseek_api_key:
+            providers["deepseek"] = DeepSeekProvider(active_settings.deepseek_api_key)
 
         # Gemini
-        if settings.google_ai_api_key:
-            providers["gemini"] = GeminiProvider(settings.google_ai_api_key)
+        if active_settings.google_ai_api_key:
+            providers["gemini"] = GeminiProvider(active_settings.google_ai_api_key)
 
         # OpenRouter
-        if settings.openrouter_api_key:
-            providers["openrouter"] = OpenRouterProvider(settings.openrouter_api_key, "openai/gpt-3.5-turbo")
+        if active_settings.openrouter_api_key:
+            providers["openrouter"] = OpenRouterProvider(active_settings.openrouter_api_key, "openai/gpt-3.5-turbo")
 
         # Local providers (always available if endpoints are up)
         providers["lm_studio"] = LMStudioProvider(settings.lm_studio_url)
@@ -444,7 +449,10 @@ class ConversationOrchestrator:
     async def reload_providers(self):
         """Reload providers to pick up new API keys"""
         print("DEBUG: Reloading providers")
-        self.providers = self._initialize_providers()
+        # Create fresh settings object to get updated environment variables
+        from ..core.config import Settings
+        fresh_settings = Settings()
+        self.providers = self._initialize_providers(fresh_settings)
         print(f"DEBUG: Reloaded providers: {list(self.providers.keys())}")
 
     async def stop_conversation(self, conversation_id: str):

@@ -6,9 +6,10 @@ import PersonaCreator from './components/Controls/PersonaCreator'
 import Header from './components/Layout/Header'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useConversation } from './hooks/useConversation'
+import { api } from './services/api'
 
 function App() {
-  const [currentConversationId, setCurrentConversationId] = useState('demo-conversation')
+  const [currentConversationId, setCurrentConversationId] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [showCardView, setShowCardView] = useState(true)
   const [participants, setParticipants] = useState([])
@@ -33,8 +34,8 @@ function App() {
   })
 
   useEffect(() => {
-    // Connect to WebSocket when component mounts
-    if (currentConversationId) {
+    // Only connect to WebSocket when component mounts if there's an actual conversation
+    if (currentConversationId && currentConversationId !== 'demo-conversation') {
       connect(currentConversationId)
     }
 
@@ -51,12 +52,25 @@ function App() {
     }
   }
 
-  // Direct button for starting from card view
   const handleStartFromCards = async () => {
-    const success = await startConversation(currentConversationId)
-    if (success) {
-      console.log('Conversation started successfully from card view')
-      setShowCardView(false)
+    try {
+      // Create a new conversation first
+      const conversationData = {}
+      const newConversation = await api.createConversation(conversationData)
+      const conversationId = newConversation.id || newConversation.conversation_id
+      
+      // Set the current conversation ID
+      setCurrentConversationId(conversationId)
+      
+      // Start the conversation
+      const success = await startConversation(conversationId)
+      if (success) {
+        console.log('Conversation started successfully from card view')
+        setShowCardView(false)
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error)
+      alert('Failed to start conversation: ' + error.message)
     }
   }
 

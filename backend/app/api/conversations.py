@@ -352,23 +352,34 @@ async def get_public_conversation(
 
 @router.get("/providers")
 async def list_providers():
-    """List available AI providers"""
+    """List available AI providers with their status"""
     providers = []
 
-    # Check provider health
-    for name, provider in orchestrator.providers.items():
-        try:
-            is_healthy = await provider.health_check()
-            models = await provider.get_models()
-        except Exception:
+    # List of all possible providers, regardless of configuration
+    all_provider_names = ["openai", "claude", "deepseek", "gemini", "openrouter"]
+
+    for name in all_provider_names:
+        # Check if provider is configured in orchestrator
+        if name in orchestrator.providers:
+            provider = orchestrator.providers[name]
+            try:
+                is_healthy = await provider.health_check()
+                models = await provider.get_models()
+                models_list = models[:3] if models else []
+            except Exception:
+                is_healthy = False
+                models_list = []
+        else:
+            # Provider not configured
             is_healthy = False
-            models = []
+            models_list = []
 
         providers.append({
             "name": name,
-            "type": provider.provider_name,
+            "type": name,
             "healthy": is_healthy,
-            "models": models[:3]  # Limit to first 3 models
+            "models": models_list,
+            "configured": name in orchestrator.providers
         })
 
     return providers
@@ -554,3 +565,27 @@ async def test_cache_performance():
             "from_cache": True,
             "response": cached_response[:200] + "..." if len(cached_response) > 200 else cached_response
         }
+
+@router.get("/debug/env")
+async def debug_environment():
+    """Debug endpoint to check environment variables"""
+    return {
+        "demo_mode": settings.demo_mode,
+        "environment_vars": {
+            "openrouter": bool(os.environ.get("OPENROUTER_API_KEY")),
+            "openai": bool(os.environ.get("OPENAI_API_KEY")),
+            "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "deepseek": bool(os.environ.get("DEEPSEEK_API_KEY")),
+            "google": bool(os.environ.get("GOOGLE_AI_API_KEY")),
+            "chimera_demo": os.environ.get("CHIMERA_DEMO_MODE")
+        },
+        "api_keys": {
+            "openai": bool(settings.openai_api_key),
+            "anthropic": bool(settings.anthropic_api_key),
+            "deepseek": bool(settings.deepseek_api_key),
+            "google": bool(settings.google_ai_api_key),
+            "openrouter": bool(settings.openrouter_api_key)
+        },
+        "providers_count": len(orchestrator.providers),
+        "provider_names": list(orchestrator.providers.keys())
+    }

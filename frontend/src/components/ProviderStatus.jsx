@@ -13,14 +13,16 @@ const providerIcons = {
 
 const ProviderStatus = () => {
   const [personas, setPersonas] = useState({})
+  const [providers, setProviders] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showDetails, setShowDetails] = useState(false)
 
   useEffect(() => {
-    fetchProviders()
+    fetchProviderStatuses()
     fetchPersonas()
     // Refresh provider status every 30 seconds
     const interval = setInterval(() => {
-      fetchProviders()
+      fetchProviderStatuses()
       fetchPersonas()
     }, 30000)
     return () => clearInterval(interval)
@@ -38,7 +40,7 @@ const ProviderStatus = () => {
     }
   }
 
-  const fetchProviders = async () => {
+  const fetchProviderStatuses = async () => {
     try {
       const response = await fetch('/api/providers')
       if (response.ok) {
@@ -61,7 +63,7 @@ const ProviderStatus = () => {
   }
 
   const configuredProviders = providers.filter(p => p.type !== 'demo')
-  const hasConfiguredProviders = configuredProviders.some(p => p.healthy)
+  const hasConfiguredProviders = configuredProviders.some(p => p.configured)
 
   return (
     <div className="flex items-center space-x-2 relative">
@@ -74,7 +76,7 @@ const ProviderStatus = () => {
 
       {/* Provider icons */}
       <div className="flex space-x-1">
-        {providers.filter(p => p.healthy).map((provider) => (
+        {providers.filter(p => p.configured).map((provider) => (
           <div
             key={provider.type}
             className={`w-5 h-5 rounded-full flex items-center justify-center text-xs cursor-pointer hover:scale-110 transition border ${
