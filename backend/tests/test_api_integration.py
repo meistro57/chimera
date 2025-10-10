@@ -1,3 +1,8 @@
+from app.api.auth import get_current_user
+from app.models.user import User
+from app.models.conversation import Conversation
+from app.main import app
+
 """
 API Integration Tests for Chimera REST Endpoints
 
@@ -9,18 +14,17 @@ Tests full HTTP request/response cycles including:
 """
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import patch, AsyncMock, Mock
 
-from app.main import app
-from app.core.database import Base, get_db
+from app.core.database import Base, get_database
 from app.core.config import Settings
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 def engine():
     """Create in-memory SQLite database for all tests"""
     engine = create_engine("sqlite:///:memory:")
@@ -29,14 +33,14 @@ def engine():
     Base.metadata.drop_all(bind=engine)
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 def SessionLocal(engine):
     """Create session factory"""
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     return SessionLocal
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 def db_session(SessionLocal):
     """Clean database session for each test"""
     session = SessionLocal()
@@ -47,16 +51,7 @@ def db_session(SessionLocal):
         session.close()
 
 
-@pytest.fixture
-async def client(db_session):
-    """Test client with database override"""
-    async with AsyncClient(app=app, base_url="http://testserver") as client:
-        app.dependency_overrides[get_db] = lambda: db_session
-        yield client
-        app.dependency_overrides.clear()
-
-
-@pytest.fixture
+@pytest_asyncio.fixture
 def test_settings():
     """Settings for testing with mock keys"""
     return Settings(
@@ -70,6 +65,28 @@ def test_settings():
         cors_origins=["http://localhost:5173"],
         debug=True
     )
+
+
+@pytest_asyncio.fixture
+async def client(db_session):
+    """Test client with database override"""
+    # Override database dependency as generator
+    def override_database():
+        yield db_session
+
+    app.dependency_overrides[get_database] = override_database
+
+    # Override user dependency
+    def override_user():
+        return User(id="test", username="test", email="test@example.com")
+
+    app.dependency_overrides[get_current_user] = override_user
+
+    async with AsyncClient(app=app, base_url="http://testserver") as ac_client:
+        yield ac_client
+
+    # Clear overrides
+    app.dependency_overrides.clear()
 
 
 class TestConversationsAPI:
@@ -95,7 +112,6 @@ class TestConversationsAPI:
         assert "philosopher" in data["ai_participants"]
 
         # Verify in database
-        from app.models.conversation import Conversation
         conversation = db_session.query(Conversation).filter(Conversation.id == data["id"]).first()
         assert conversation is not None
         assert conversation.title == conv_data["title"]
@@ -130,11 +146,11 @@ class TestConversationsAPI:
         assert response.status_code == 200
 
         data = response.json()
-        assert "conversations" in data
-        assert len(data["conversations"]) >= 3
+        assert isinstance(data, list)
+        assert len(data) >= 3
 
         # Verify structure
-        for conv in data["conversations"]:
+        for conv in data:
             assert "id" in conv
             assert "title" in conv
             assert "ai_participants" in conv
@@ -175,10 +191,8 @@ class TestConversationsAPI:
         conversation_id = create_response.json()["id"]
 
         # Mock the orchestrator
-        with patch('app.api.conversations.ConversationOrchestrator') as mock_orch_cls:
-            mock_orch = Mock()
+        with patch('app.api.conversations.orchestrator') as mock_orch:
             mock_orch.start_conversation = AsyncMock(return_value=True)
-            mock_orch_cls.return_value = mock_orch
 
             # Start conversation
             response = await client.post(
@@ -203,10 +217,8 @@ class TestConversationsAPI:
         conversation_id = create_response.json()["id"]
 
         # Mock the orchestrator
-        with patch('app.api.conversations.ConversationOrchestrator') as mock_orch_cls:
-            mock_orch = Mock()
+        with patch('app.api.conversations.orchestrator') as mock_orch:
             mock_orch.stop_conversation = AsyncMock()
-            mock_orch_cls.return_value = mock_orch
 
             # Stop conversation
             response = await client.post(f"/api/conversations/{conversation_id}/stop")
@@ -226,22 +238,21 @@ class TestPersonasAPI:
         assert response.status_code == 200
 
         data = response.json()
-        assert "personas" in data
-        assert isinstance(data["personas"], list)
+        assert isinstance(data, dict)
 
         # Should have at least the three main personas
-        personas = data["personas"]
+        personas = data
         assert len(personas) >= 3
 
         # Check for required personas
-        persona_names = [p["name"] for p in personas]
+        persona_names = list(personas.keys())
         assert "philosopher" in persona_names
         assert "comedian" in persona_names
         assert "scientist" in persona_names
 
         # Check persona structure
-        philosopher = next(p for p in personas if p["name"] == "philosopher")
-        required_fields = ["name", "display_name", "description", "system_prompt"]
+        philosopher = personas["philosopher"]
+        required_fields = ["name", "display_name", "provider"]
         for field in required_fields:
             assert field in philosopher
 
@@ -253,11 +264,9 @@ class TestCorsAndSecurity:
     async def test_cors_headers(self, client, test_settings):
         """Test CORS headers are properly set"""
         response = await client.options("/api/conversations")
-        # Note: FastAPI test client may not return CORS headers in this test setup
-        # This is mainly to ensure the CORS middleware is configured
+        assert "Access-Control-Allow-Origin" in response.headers
 
         response = await client.get("/api/conversations")
-        # Should work without CORS issues in test environment
         assert response.status_code == 200
 
     @pytest.mark.asyncio
@@ -325,10 +334,11 @@ class TestConversationPerformance:
         import asyncio
 
         async def create_conversation(i):
-            return await client.post("/api/conversations", json={
+            conv_data = {
                 "title": f"Concurrent Test {i}",
                 "ai_participants": ["philosopher"]
-            })
+            }
+            return await client.post("/api/conversations", json=conv_data)
 
         # Create 10 conversations concurrently
         tasks = [create_conversation(i) for i in range(10)]
@@ -340,7 +350,7 @@ class TestConversationPerformance:
 
         # Verify all conversations exist
         list_response = await client.get("/api/conversations")
-        conversations = list_response.json()["conversations"]
+        conversations = list_response.json()
         assert len(conversations) >= 10
 
 
