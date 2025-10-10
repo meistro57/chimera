@@ -1,5 +1,5 @@
-0.1.0
-Release Date: 2025-10-08
+0.1.1
+Release Date: 2025-10-09
 Status: Pre-production (active development)
 Branch: main -> origin/main
-Features: Multi-AI conversations, persona system, connection manager, demo mode
+Features: Multi-AI conversations, persona system, connection manager, demo mode, test infrastructure fixes

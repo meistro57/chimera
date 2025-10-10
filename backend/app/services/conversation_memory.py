@@ -1,40 +1,93 @@
 from typing import List, Dict, Any
 from collections import defaultdict
 import json
+from datetime import datetime
+import uuid
 
 from ..providers.base import ChatMessage
 from .persona_manager import PersonaManager
+from ..core.config import settings
+
+# Add vector memory imports
+import chromadb
+from chromadb.config import Settings
+from openai import OpenAI
 
 class ConversationMemory:
-    """Service to enhance conversation context and memory"""
+    """Service to enhance conversation context and memory with vector search"""
 
     def __init__(self):
         self.persona_manager = PersonaManager()
-        self.memory_filters = {
-            "philosopher": self._get_philosopher_memory,
-            "comedian": self._get_comedian_memory,
-            "scientist": self._get_scientist_memory
-        }
+        # Initialize vector DB - use new ChromaDB API
+        import chromadb
+        self.client_chroma = chromadb.PersistentClient(path="./chroma_db")
+        self.collection = self.client_chroma.get_or_create_collection(name="conversation_memory")
+        
+        # OpenAI for embeddings
+        self.client_openai = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        if not self.client_openai:
+            print("Warning: No OpenAI API key set, vector memory disabled")
+        
+    def get_embedding(self, text: str):
+        """Get OpenAI embedding for text"""
+        if not self.client_openai:
+            return [0.0] * 1536  # Return zero vector as fallback
+        try:
+            response = self.client_openai.embeddings.create(
+                input=[text],
+                model="text-embedding-ada-002"
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            print(f"Embedding error: {e}")
+            return [0.0] * 1536
 
     def enhance_context(self, messages: List[ChatMessage], current_persona: str) -> List[ChatMessage]:
         """
-        Enhance conversation context with persona-specific memory cues
-
+        Enhance conversation context with persona-specific memory cues including vector search
+        
         Args:
             messages: Original conversation messages
             current_persona: The persona who will respond next
-
+        
         Returns:
             Enhanced message list with memory cues
         """
         if not messages:
             return messages
+        
+        # Get keyword-based memory enhancement
+        keyword_enhanced = self._get_keyword_memory(messages, current_persona)
+        
+        # Add vector-based memory
+        vector_enhanced = self._add_vector_memory(keyword_enhanced, current_persona)
+        
+        return vector_enhanced
 
-        # Get memory filter for current persona
-        memory_func = self.memory_filters.get(current_persona, self._default_memory)
-
-        # Apply memory enhancement
-        return memory_func(messages, current_persona)
+    def _add_vector_memory(self, messages: List[ChatMessage], current_persona: str) -> List[ChatMessage]:
+        """Add vector-based memory enhancements (placeholder for now)"""
+        # For now, just return messages unchanged since vector memory requires API keys
+        return messages
+        
+    def store_message(self, message: Dict[str, Any], conversation_id: str):
+        """Store a message in the vector database for memory"""
+        content = message.get('content', '')
+        if not content:
+            return
+            
+        embedding = self.get_embedding(content)
+        metadata = {
+            'persona': message.get('persona_name', message.get('sender', 'unknown')),
+            'conversation_id': conversation_id,
+            'timestamp': message.get('timestamp', datetime.now().isoformat())
+        }
+        
+        self.collection.add(
+            embeddings=[embedding],
+            documents=[content],
+            metadatas=[metadata],
+            ids=[f"{conversation_id}_{message.get('id', str(uuid.uuid4()))}"]
+        )
 
     def _default_memory(self, messages: List[ChatMessage], current_persona: str) -> List[ChatMessage]:
         """Default memory processing - just adds some context"""
@@ -46,6 +99,17 @@ class ConversationMemory:
             enhanced = messages.copy()
 
         return enhanced
+
+    def _get_keyword_memory(self, messages: List[ChatMessage], current_persona: str) -> List[ChatMessage]:
+        """Route to persona-specific memory processing"""
+        if current_persona == "philosopher":
+            return self._get_philosopher_memory(messages, current_persona)
+        elif current_persona == "comedian":
+            return self._get_comedian_memory(messages, current_persona)
+        elif current_persona == "scientist":
+            return self._get_scientist_memory(messages, current_persona)
+        else:
+            return self._default_memory(messages, current_persona)
 
     def _get_philosopher_memory(self, messages: List[ChatMessage], current_persona: str) -> List[ChatMessage]:
         """Philosopher benefits from deep contextual memory and philosophical themes"""

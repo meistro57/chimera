@@ -5,6 +5,21 @@ All notable changes to Chimera project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-10-09
+
+### ✅ Fixed
+- **Test Infrastructure Issues**: Fixed syntax errors, missing dependencies, and import issues in test files
+- **Conversation Memory System**: Fixed ChromaDB initialization and added missing memory processing methods
+- **Package Dependencies**: Updated `requirements.txt` with missing dependencies (pytest-asyncio, chromadb)
+- **Database Configuration**: Fixed import errors in database configuration and conversation memory
+- **Test Environment**: Resolved asyncio fixture issues and mocking problems in conversation orchestrator tests
+
+### 🔧 Technical Fixes
+- **ChromaDB Upgrades**: Updated from deprecated Settings API to PersistentClient for vector database
+- **Memory Processing**: Added persona-specific memory routing and vector memory placeholder methods
+- **Test Configuration**: Fixed pytest-asyncio fixture decorations and relative import issues
+- **Authentication Setup**: Ensured python-jose dependencies are properly configured
+
 ## [0.1.0] - 2025-10-08
 
 ### 🆕 Added
@@ -45,5 +60,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-This initial release marks the transition from MVP to a feature-complete multi-AI conversational system capable of production deployment.</content>
+This initial release marks the transition from MVP to a feature-complete multi-AI conversational system capable of production deployment.
 </xai:function_call committed to overwriting the file. The creation overwrites the old file.

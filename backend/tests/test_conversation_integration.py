@@ -348,5 +348,4 @@ class TestWebSocketIntegration:
 
 # Run integration tests with specific markers
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])</content>
-<parameter name="file_path">backend/tests/test_conversation_integration.py
+    pytest.main([__file__, "-v", "--tb=short"])

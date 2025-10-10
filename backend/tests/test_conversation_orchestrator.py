@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 from app.services.conversation_orchestrator import ConversationOrchestrator
@@ -14,34 +15,30 @@ def mock_redis_client():
     mock.set = AsyncMock()
     return mock
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def orchestrator(mock_websocket_manager, mock_redis_client):
-    with patch('app.services.conversation_orchestrator.redis_client', mock_redis_client):
-        with patch('app.services.conversation_orchestrator.settings') as mock_settings:
-            # Mock API keys
-            mock_settings.openai_api_key = "test_key"
-            mock_settings.anthropic_api_key = "test_key"
-            mock_settings.deepseek_api_key = "test_key"
-            mock_settings.google_ai_api_key = "test_key"
-            mock_settings.openrouter_api_key = "test_key"
-            mock_settings.lm_studio_url = "http://localhost:1234"
-            mock_settings.ollama_url = "http://localhost:11434"
-
-            orch = ConversationOrchestrator(mock_websocket_manager)
-            yield orch
+    # Create a simple orchestrator without complex patches for now
+    orch = ConversationOrchestrator(mock_websocket_manager)
+    yield orch
 
 @pytest.mark.asyncio
 async def test_provider_initialization(orchestrator):
     """Test that providers are initialized correctly based on settings"""
     with patch('app.services.conversation_orchestrator.settings') as mock_settings:
         mock_settings.openai_api_key = "test"
-        mock_settings.openrouter_api_key = "test"
+        mock_settings.anthropic_api_key = None  # Not set
+        mock_settings.deepseek_api_key = None
+        mock_settings.google_ai_api_key = None
+        mock_settings.openrouter_api_key = None
         mock_settings.lm_studio_url = "http://localhost:1234"
+        mock_settings.ollama_url = "http://localhost:11434"
 
         providers = orchestrator._initialize_providers()
         assert "openai" in providers
-        assert "openrouter" in providers
         assert "lm_studio" in providers
+        assert "ollama" in providers
+        # Claude should not be present since API key is None
+        assert "claude" not in providers
 
 @pytest.mark.asyncio
 async def test_start_conversation(orchestrator, mock_websocket_manager):

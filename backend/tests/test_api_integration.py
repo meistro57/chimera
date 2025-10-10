@@ -345,5 +345,4 @@ class TestConversationPerformance:
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short", "-x"])</content>
-<parameter name="file_path">backend/tests/test_api_integration.py
+    pytest.main([__file__, "-v", "--tb=short", "-x"])

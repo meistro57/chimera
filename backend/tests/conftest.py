@@ -9,13 +9,14 @@ Provides shared fixtures, mocks, and utilities for comprehensive testing of:
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
-from unittest.mock import AsyncMock, Mock, MagicMock
+from unittest.mock import AsyncMock, Mock, MagicMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import redis.asyncio as redis
 
-from app.core.database import Base, get_db
+from app.core.database import Base, get_database
 from app.core.config import Settings
 
 
@@ -124,7 +125,7 @@ async def websocket_manager_mock():
     return ws_manager
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def conversation_orchestrator_mock(websocket_manager_mock):
     """Mock conversation orchestrator"""
     with patch('app.services.conversation_orchestrator.ConversationOrchestrator') as mock_orch:
@@ -400,5 +401,4 @@ def pytest_collection_modifyitems(config, items):
 
         # Add asyncio marker to async tests
         if "async def test_" in str(item.function):
-            item.add_marker(pytest.mark.asyncio)</content>
-<parameter name="file_path">backend/tests/conftest.py
+            item.add_marker(pytest.mark.asyncio)
