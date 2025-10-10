@@ -25,7 +25,7 @@ services:
     volumes:
       - redis_dev_data:/data
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -60,7 +60,9 @@ services:
 
   # Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: development
     container_name: chimera-frontend-dev
     volumes:
       - ./frontend:/app
