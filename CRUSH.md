@@ -4,6 +4,7 @@
 
 ### Full Stack Development
 - `make dev` - Setup and start development environment
+- `/start_dev.sh` - Enhanced startup script with error handling and container cleanup (recommended)
 - `make build` - Build Docker images
 - `make up` - Start production stack
 - `make down` - Stop all services
@@ -98,6 +99,7 @@ alembic current  # Check current revision
 - **API documentation**: Enable FastAPI aut-docs, add OpenAPI spec validation
 - **Environment management**: Add `.env.example` with all required variables
 - **Makefile defaults**: Add PHONY declarations, enable parallel builds
+- **Enhanced startup script**: `start_dev.sh` includes automatic container cleanup on errors, health checks for database services, and improved error handling
 
 ### Testing & Quality
 - **Integration tests**: Add tests for full conversation flows, not just unit tests

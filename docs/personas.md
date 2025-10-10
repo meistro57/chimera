@@ -13,6 +13,18 @@ The Chimera interface includes a point-and-click persona creator that lets you d
 3. **Find "Create Persona" Button**
 4. **Click to open the persona creation modal**
 
+### Persona Selection Features
+
+**Visual Feedback:**
+- Cards show selected persona names clearly below the avatar
+- Green border indicates selected persona
+- Checkmark confirms successful selection
+
+**API Configuration:**
+- **API Configuration Button**: Blue button with settings icon opens API key setup wizard
+- Configure API keys for all providers: OpenAI, Anthropic, DeepSeek, Google AI, OpenRouter, LM Studio, Ollama
+- One-click access to the full ConnectionWizard from any persona card
+
 ### GUI Components
 
 #### Form Fields
@@ -51,7 +63,8 @@ Each persona can be assigned to use specific AI providers and models through the
 2. **Expand the configuration panel** by clicking the persona card
 3. **Select AI Provider**: Choose from OpenAI, Claude, DeepSeek, Gemini, OpenRouter, LM Studio, or Ollama
 4. **Select Model**: Pick specific models like GPT-4, Claude-Opus, or let it auto-select
-5. **Save Configuration**: Changes apply immediately to new conversations
+5. **Configure API Keys**: Use the "API Configuration" button to set up provider keys and URLs
+6. **Save Configuration**: Changes apply immediately to new conversations
 
 This allows you to mix and match AI strengths:
 - Assign GPT-4 for philosophical reasoning prowess
