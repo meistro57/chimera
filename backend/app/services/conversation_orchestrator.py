@@ -1,14 +1,19 @@
+# backend/app/services/conversation_orchestrator.py
 import asyncio
 import json
+import logging
 import random
 import uuid
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
 from ..models import Conversation, Message
-from ..providers.base import ChatMessage
-from ..providers import OpenAIProvider, ClaudeProvider, DeepSeekProvider, GeminiProvider, LMStudioProvider, OllamaProvider, OpenRouterProvider, DemoProvider
-from ..core.config import settings
+from ..providers import (
+    ChatMessage,
+    ProviderRegistry,
+    provider_registry,
+)
+from ..core.config import Settings, settings
 from .persona_manager import PersonaManager
 from .turn_manager import TurnManager
 from .websocket_manager import WebSocketManager, get_websocket_manager
@@ -18,58 +23,62 @@ from .topic_analyzer import TopicAnalyzer
 from .response_cache import response_cache
 from ..core.logging_config import conversation_logger
 
+logger = logging.getLogger(__name__)
+
+
 class ConversationOrchestrator:
-    def __init__(self, websocket_manager: Optional[WebSocketManager] = None):
+    def __init__(
+        self,
+        websocket_manager: Optional[WebSocketManager] = None,
+        provider_registry_instance: Optional[ProviderRegistry] = None,
+    ):
         self.persona_manager = PersonaManager()
         self.turn_manager = TurnManager()
         self.conversation_starter = ConversationStarter()
         self.conversation_memory = ConversationMemory()
         self.topic_analyzer = TopicAnalyzer()
         self.websocket_manager = websocket_manager or get_websocket_manager()
+        self.provider_registry = provider_registry_instance or provider_registry
         self.providers = self._initialize_providers()
 
-    def _initialize_providers(self, fresh_settings=None) -> Dict[str, Any]:
-        """Initialize all available AI providers"""
-        if fresh_settings:
-            active_settings = fresh_settings
-        else:
-            active_settings = settings
-        
-        providers = {}
+    def _initialize_providers(
+        self,
+        fresh_settings: Optional[Settings] = None,
+    ) -> Dict[str, Any]:
+        """Initialise all available AI providers using the shared registry."""
 
-        # OpenAI
-        if active_settings.openai_api_key:
-            providers["openai"] = OpenAIProvider(active_settings.openai_api_key, "gpt-3.5-turbo")
+        active_settings = fresh_settings or settings
 
-        # Claude
-        if active_settings.anthropic_api_key:
-            providers["claude"] = ClaudeProvider(active_settings.anthropic_api_key, "claude-3-haiku-20240307")
+        providers = self.provider_registry.create_configured_providers(active_settings)
 
-        # DeepSeek
-        if active_settings.deepseek_api_key:
-            providers["deepseek"] = DeepSeekProvider(active_settings.deepseek_api_key)
+        if "demo" not in providers:
+            try:
+                providers["demo"] = self.provider_registry.create_provider("demo", active_settings)
+            except Exception as exc:  # pragma: no cover - defensive safety net
+                logger.error("Failed to initialise demo provider fallback: %s", exc)
 
-        # Gemini
-        if active_settings.google_ai_api_key:
-            providers["gemini"] = GeminiProvider(active_settings.google_ai_api_key)
+        if not providers:
+            logger.warning("No AI providers available; attempting demo provider fallback.")
+            try:
+                providers["demo"] = self.provider_registry.create_provider("demo", active_settings)
+            except Exception as exc:  # pragma: no cover - ensure usability during setup
+                logger.exception("Unable to create demo provider via registry fallback", exc_info=exc)
+                from ..providers import DemoProvider
+                providers["demo"] = DemoProvider()
 
-        # OpenRouter
-        if active_settings.openrouter_api_key:
-            providers["openrouter"] = OpenRouterProvider(active_settings.openrouter_api_key, "openai/gpt-3.5-turbo")
-
-        # Local providers (always available if endpoints are up)
-        providers["lm_studio"] = LMStudioProvider(settings.lm_studio_url)
-        providers["ollama"] = OllamaProvider(settings.ollama_url)
-
-        # Demo provider (always available for testing without API keys)
-        providers["demo"] = DemoProvider()
-
-        # Provider to persona mapping for intelligent selection
-        self.provider_persona_assignment = {
-            "philosopher": ["openai", "claude", "deepseek", "openrouter", "demo"],  # Prefer OpenAI for deep thinking, then OpenRouter
-            "comedian": ["claude", "openai", "deepseek", "openrouter", "demo"],     # Claude for humor
-            "scientist": ["openai", "deepseek", "claude", "openrouter", "demo"],    # DeepSeek for logic
+        base_mapping = {
+            "philosopher": ["openai", "claude", "deepseek", "openrouter", "demo"],
+            "comedian": ["claude", "openai", "deepseek", "openrouter", "demo"],
+            "scientist": ["openai", "deepseek", "claude", "openrouter", "demo"],
         }
+
+        available = set(providers.keys())
+        self.provider_persona_assignment = {}
+        for persona, preferred in base_mapping.items():
+            filtered = [name for name in preferred if name in available]
+            if "demo" in available and "demo" not in filtered:
+                filtered.append("demo")
+            self.provider_persona_assignment[persona] = filtered or list(available)
 
         return providers
 
@@ -449,7 +458,6 @@ class ConversationOrchestrator:
         """Reload providers to pick up new API keys"""
         print("DEBUG: Reloading providers")
         # Create fresh settings object to get updated environment variables
-        from ..core.config import Settings
         fresh_settings = Settings()
         self.providers = self._initialize_providers(fresh_settings)
         print(f"DEBUG: Reloaded providers: {list(self.providers.keys())}")
