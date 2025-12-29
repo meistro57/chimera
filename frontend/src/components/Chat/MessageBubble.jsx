@@ -1,3 +1,4 @@
+// src/components/Chat/MessageBubble.jsx
 import React from 'react'
 import PersonaAvatar from './PersonaAvatar'
 

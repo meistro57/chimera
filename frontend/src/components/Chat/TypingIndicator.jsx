@@ -1,7 +1,18 @@
-import React from 'react'
+// src/components/Chat/TypingIndicator.jsx
+import React, { useMemo } from 'react'
+import { selectMessages, useChatStore } from '../../store/ChatStore'
 import PersonaAvatar from './PersonaAvatar'
 
-const TypingIndicator = ({ message }) => {
+const TypingIndicator = ({ message: typingMessageOverride }) => {
+  const { state } = useChatStore()
+
+  const message = useMemo(() => {
+    if (typingMessageOverride) return typingMessageOverride
+    if (!state.activeConversationId) return null
+    const messages = selectMessages(state, state.activeConversationId)
+    return messages.find(entry => entry.type === 'typing')
+  }, [state, typingMessageOverride])
+
   if (!message || message.type !== 'typing') {
     return null
   }

@@ -1,21 +1,29 @@
-import React, { useEffect, useRef } from 'react'
+// src/components/Chat/ChatWindow.jsx
+import React, { useEffect, useMemo, useRef } from 'react'
+import { selectMessages, useChatStore } from '../../store/ChatStore'
 import MessageBubble from './MessageBubble'
 import TypingIndicator from './TypingIndicator'
 
-const ChatWindow = ({ messages, conversationId }) => {
+const ChatWindow = () => {
+  const { state } = useChatStore()
   const messagesEndRef = useRef(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const messages = useMemo(() => {
+    if (!state.activeConversationId) return []
+    return selectMessages(state, state.activeConversationId)
+  }, [state])
+
+  const typingMessage = useMemo(
+    () => messages.find(message => message.type === 'typing'),
+    [messages]
+  )
 
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-4">
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
@@ -40,11 +48,8 @@ const ChatWindow = ({ messages, conversationId }) => {
               />
             ))}
 
-            {/* Typing indicators for active AIs */}
-            {messages.some(m => m.type === 'typing') && (
-              <TypingIndicator
-                message={messages.find(m => m.type === 'typing')}
-              />
+            {typingMessage && (
+              <TypingIndicator message={typingMessage} />
             )}
           </>
         )}
@@ -52,7 +57,6 @@ const ChatWindow = ({ messages, conversationId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Welcome Message */}
       {messages.length === 0 && (
         <div className="border-t border-gray-200 p-6 bg-blue-50">
           <div className="flex items-start space-x-3">
