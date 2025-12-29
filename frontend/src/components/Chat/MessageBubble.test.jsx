@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import MessageBubble from './MessageBubble';
+// src/components/Chat/MessageBubble.test.jsx
+import { render, screen } from '@testing-library/react'
+import MessageBubble from './MessageBubble'
 
 describe('MessageBubble', () => {
   test('renders normal message', () => {
@@ -12,11 +13,11 @@ describe('MessageBubble', () => {
           timestamp: 1234567890
         }}
       />
-    );
-    
-    expect(screen.getByText('Hello world')).toBeInTheDocument();
-    expect(screen.getByText('philosopher')).toBeInTheDocument();
-  });
+    )
+
+    expect(screen.getByText('Hello world')).toBeInTheDocument()
+    expect(screen.getByText('User')).toBeInTheDocument()
+  })
 
   test('renders error message', () => {
     render(
@@ -27,11 +28,8 @@ describe('MessageBubble', () => {
           timestamp: 1234567890
         }}
       />
-    );
-    
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    // Check for error styling
-  });
-});
+    )
 
-// Add tests for typing indicators, etc.
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+  })
+})

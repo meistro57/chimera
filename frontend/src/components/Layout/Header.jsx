@@ -1,9 +1,11 @@
+// src/components/Layout/Header.jsx
 import React, { useState } from 'react'
-import { Wifi, WifiOff, MessageSquare, Settings } from 'lucide-react'
+import { MessageSquare, Settings } from 'lucide-react'
 import ConnectionWizard from '../ConnectionWizard'
 import ProviderStatus from '../ProviderStatus'
+import ConnectionStatus from '../ConnectionStatus'
 
-const Header = ({ isConnected, connectionStatus }) => {
+const Header = () => {
   const [showSettings, setShowSettings] = useState(false)
 
   return (
@@ -23,7 +25,7 @@ const Header = ({ isConnected, connectionStatus }) => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Settings Button */}
+            <ConnectionStatus />
             <button
               onClick={() => setShowSettings(true)}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
@@ -32,13 +34,11 @@ const Header = ({ isConnected, connectionStatus }) => {
               <Settings className="w-5 h-5" />
             </button>
 
-            {/* Provider Status */}
             <ProviderStatus />
           </div>
         </div>
       </header>
 
-      {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">

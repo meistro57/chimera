@@ -1,49 +1,62 @@
-import { useState, useRef, useCallback } from 'react'
+// src/hooks/useWebSocket.js
+import { useCallback, useEffect, useRef } from 'react'
+import { useChatStore } from '../store/ChatStore'
 
-export const useWebSocket = ({ onMessage, onConnect, onDisconnect }) => {
-  const [connectionStatus, setConnectionStatus] = useState('Disconnected')
+export const useWebSocket = ({ conversationId }) => {
+  const { state, dispatch, stateRef } = useChatStore()
   const ws = useRef(null)
+  const pendingRef = useRef(state.pendingUserMessages)
 
-  const connect = useCallback((conversationId) => {
+  useEffect(() => {
+    pendingRef.current = state.pendingUserMessages
+  }, [state.pendingUserMessages])
+
+  const updateStatus = useCallback((status, error) => {
+    dispatch({ type: 'CONNECTION_STATUS_CHANGED', payload: { status, error } })
+  }, [dispatch])
+
+  const connect = useCallback(() => {
+    if (!conversationId) return
     if (ws.current?.readyState === WebSocket.OPEN) {
       return
     }
 
-    // In development with Docker, connect directly to backend container
-    const backendUrl = process.env.NODE_ENV === 'development' 
-      ? 'ws://backend:8000' 
+    const backendUrl = process.env.NODE_ENV === 'development'
+      ? 'ws://backend:8000'
       : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
-    
-    const wsUrl = `${backendUrl}/ws/conversation/${conversationId}`
 
-    setConnectionStatus('Connecting...')
+    const wsUrl = `${backendUrl}/ws/conversation/${conversationId}`
+    updateStatus('Connecting...')
 
     try {
       ws.current = new WebSocket(wsUrl)
 
       ws.current.onopen = () => {
-        setConnectionStatus('Connected')
-        onConnect?.()
+        updateStatus('Connected')
+        pendingRef.current.forEach(entry => {
+          ws.current?.send(JSON.stringify(entry.message))
+          dispatch({ type: 'RESOLVE_PENDING_USER_MESSAGE', payload: { id: entry.id } })
+        })
+        dispatch({ type: 'FLUSH_PENDING_USER_MESSAGES' })
       }
 
       ws.current.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data)
-          onMessage?.(message)
+          const payloadConversationId = message.conversation_id || conversationId || stateRef.current.activeConversationId
+          dispatch({ type: 'MESSAGE_RECEIVED', payload: { conversationId: payloadConversationId, message } })
         } catch (error) {
           console.error('Error parsing WebSocket message:', error)
+          updateStatus('Error', error?.message)
         }
       }
 
       ws.current.onclose = (event) => {
-        setConnectionStatus('Disconnected')
-        onDisconnect?.()
-
-        // Attempt to reconnect after 3 seconds if not intentionally closed
+        updateStatus('Disconnected')
         if (!event.wasClean) {
           setTimeout(() => {
             if (ws.current?.readyState !== WebSocket.OPEN) {
-              connect(conversationId)
+              connect()
             }
           }, 3000)
         }
@@ -51,28 +64,32 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }) => {
 
       ws.current.onerror = (error) => {
         console.error('WebSocket error:', error)
-        setConnectionStatus('Error')
+        updateStatus('Error', error?.message)
       }
-
     } catch (error) {
       console.error('Error creating WebSocket connection:', error)
-      setConnectionStatus('Error')
+      updateStatus('Error', error?.message)
     }
-  }, [onMessage, onConnect, onDisconnect])
+  }, [conversationId, dispatch, stateRef, updateStatus])
 
   const disconnect = useCallback(() => {
     if (ws.current) {
       ws.current.close()
       ws.current = null
     }
-    setConnectionStatus('Disconnected')
-  }, [])
+    updateStatus('Disconnected')
+  }, [updateStatus])
 
   const sendMessage = useCallback((message) => {
+    const messageId = message.id || `pending_${Date.now()}`
     if (ws.current?.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(message))
+      dispatch({ type: 'RESOLVE_PENDING_USER_MESSAGE', payload: { id: messageId } })
+      return
     }
-  }, [])
+
+    dispatch({ type: 'QUEUE_PENDING_USER_MESSAGE', payload: { id: messageId, message } })
+  }, [dispatch])
 
   const ping = useCallback(() => {
     sendMessage({ type: 'ping' })
@@ -83,7 +100,7 @@ export const useWebSocket = ({ onMessage, onConnect, onDisconnect }) => {
     disconnect,
     sendMessage,
     ping,
-    connectionStatus,
-    isConnected: connectionStatus === 'Connected'
+    connectionStatus: state.connectionStatus,
+    isConnected: state.connectionStatus === 'Connected'
   }
 }
