@@ -1,3 +1,4 @@
+# conftest.py
 """
 Testing Configuration and Fixtures for Chimera Integration Tests
 
@@ -15,9 +16,56 @@ from unittest.mock import AsyncMock, Mock, MagicMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import redis.asyncio as redis
+import sys
+import types
 
 from app.core.database import Base, get_database
 from app.core.config import Settings
+
+
+def _install_dummy_third_party() -> None:
+    """Provide lightweight stand-ins for optional heavy dependencies."""
+
+    if "chromadb" not in sys.modules:
+        chromadb_module = types.ModuleType("chromadb")
+
+        class _DummyChromaClient:
+            def __init__(self, *_, **__):
+                self._collection = self
+
+            def get_or_create_collection(self, name: str):  # pragma: no cover - shim
+                return self._collection
+
+            def add(self, *_, **__):  # pragma: no cover - shim
+                return None
+
+        chromadb_module.PersistentClient = _DummyChromaClient
+        sys.modules["chromadb"] = chromadb_module
+
+    if "chromadb.config" not in sys.modules:
+        chromadb_config = types.ModuleType("chromadb.config")
+        chromadb_config.Settings = type("Settings", (), {})
+        sys.modules["chromadb.config"] = chromadb_config
+
+    if "openai" not in sys.modules:
+        openai_module = types.ModuleType("openai")
+
+        class _DummyEmbeddings:
+            def create(self, *_, **__):  # pragma: no cover - shim
+                class _Response:
+                    data = [type("Embedding", (), {"embedding": [0.0]})()]
+
+                return _Response()
+
+        class _DummyOpenAI:
+            def __init__(self, *_, **__):
+                self.embeddings = _DummyEmbeddings()
+
+        openai_module.OpenAI = _DummyOpenAI
+        sys.modules["openai"] = openai_module
+
+
+_install_dummy_third_party()
 
 
 @pytest.fixture(scope="session")
