@@ -18,7 +18,20 @@ logger = logging.getLogger(__name__)
 @router.websocket("/conversation/{conversation_id}")
 async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
     """WebSocket endpoint for real-time conversation updates"""
-    await websocket_manager.connect(websocket, conversation_id)
+    try:
+        await websocket_manager.connect(websocket, conversation_id)
+    except Exception as exc:  # pragma: no cover - defensive; exercised indirectly
+        logger.exception(
+            "Failed to establish websocket connection",
+            extra={"conversation_id": conversation_id},
+        )
+        await websocket_manager.send_error(
+            websocket,
+            code="connection_failed",
+            message="Unable to establish websocket connection.",
+        )
+        await websocket.close(code=1011)
+        return
 
     try:
         # Send initial connection confirmation
@@ -44,6 +57,10 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
                 message = json.loads(data)
                 await handle_websocket_message(websocket, conversation_id, message)
             except json.JSONDecodeError:
+                logger.warning(
+                    "Invalid JSON received from client",
+                    extra={"conversation_id": conversation_id, "payload": data},
+                )
                 await websocket_manager.send_error(
                     websocket,
                     code="invalid_json",
@@ -55,6 +72,10 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
             websocket, conversation_id, reason="client_disconnect", detail=str(exc)
         )
         await websocket_manager.send_conversation_status(conversation_id)
+        logger.info(
+            "WebSocket disconnected by client",
+            extra={"conversation_id": conversation_id, "detail": str(exc)},
+        )
 
     except Exception as e:
         logger.exception("WebSocket error", extra={"conversation_id": conversation_id})
@@ -67,6 +88,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: str):
             websocket, conversation_id, reason="server_error", detail=str(e)
         )
         await websocket_manager.send_conversation_status(conversation_id)
+        await websocket.close(code=1011)
 
 async def handle_websocket_message(websocket: WebSocket, conversation_id: str, message: dict):
     """Handle incoming WebSocket messages from clients"""
@@ -118,6 +140,10 @@ async def handle_websocket_message(websocket: WebSocket, conversation_id: str, m
 
     else:
         # Unknown message type
+        logger.warning(
+            "Received unknown message type",
+            extra={"conversation_id": conversation_id, "message_type": message_type},
+        )
         await websocket_manager.send_error(
             websocket,
             code="unknown_message",

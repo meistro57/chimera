@@ -3,6 +3,7 @@
 
 import asyncio
 
+import anyio
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -54,6 +55,14 @@ async def reset_websocket_manager(monkeypatch):
 
     yield
 
+    if ws_router.websocket_manager._heartbeat_task and not ws_router.websocket_manager._heartbeat_task.done():
+        ws_router.websocket_manager._heartbeat_task.cancel()
+        with anyio.move_on_after(0.2):
+            try:
+                await ws_router.websocket_manager._heartbeat_task
+            except asyncio.CancelledError:
+                pass
+    ws_router.websocket_manager._heartbeat_task = None
     ws_router.websocket_manager.active_connections.clear()
 
 
@@ -80,7 +89,7 @@ async def test_websocket_connect_and_status(websocket_client: TestClient):
 
 
 @pytest.mark.anyio("asyncio")
-async def test_invalid_json_handling(websocket_client: TestClient):
+async def test_invalid_json_handling(websocket_client: TestClient, caplog):
     with websocket_client.websocket_connect("/ws/conversation/conv-2") as session:
         session.receive_json()
         session.receive_json()
@@ -90,6 +99,7 @@ async def test_invalid_json_handling(websocket_client: TestClient):
 
     assert error["type"] == "error"
     assert error["code"] == "invalid_json"
+    assert any("Invalid JSON received" in rec.message for rec in caplog.records)
 
 
 @pytest.mark.anyio("asyncio")
@@ -121,6 +131,22 @@ async def test_force_disconnect_and_reason(websocket_client: TestClient):
 
 
 @pytest.mark.anyio("asyncio")
+async def test_heartbeat_timeout_disconnects_stale_session(websocket_client: TestClient):
+    with websocket_client.websocket_connect("/ws/conversation/conv-6") as session:
+        session.receive_json()
+        session.receive_json()
+
+        await anyio.sleep(0.35)
+        error = session.receive_json()
+
+        assert error["type"] == "error"
+        assert error["code"] == "heartbeat_timeout"
+
+        await anyio.sleep(0.05)
+        assert "conv-6" not in ws_router.websocket_manager.active_connections
+
+
+@pytest.mark.anyio("asyncio")
 async def test_reconnect_sends_status_update(websocket_client: TestClient):
     # First connection
     with websocket_client.websocket_connect("/ws/conversation/conv-5") as session:
@@ -135,3 +161,35 @@ async def test_reconnect_sends_status_update(websocket_client: TestClient):
     assert reconnect_msg["type"] == "connection"
     assert status_msg["type"] == "status"
     assert status_msg["connected_clients"] >= 1
+
+
+@pytest.mark.anyio("asyncio")
+async def test_status_broadcast_on_disconnect_and_reconnect(websocket_client: TestClient):
+    # Connect two clients to verify status broadcasts during disconnect/reconnect lifecycle
+    with websocket_client.websocket_connect("/ws/conversation/conv-7") as session_a:
+        session_a.receive_json()
+        session_a.receive_json()
+
+        with websocket_client.websocket_connect("/ws/conversation/conv-7") as session_b:
+            session_b.receive_json()
+            status_b = session_b.receive_json()
+
+            assert status_b["type"] == "status"
+            assert status_b["connected_clients"] >= 2
+
+            session_b.send_json({"type": "disconnect", "reason": "test"})
+            session_b.receive_json()
+            with pytest.raises(WebSocketDisconnect):
+                session_b.receive_text()
+
+            status_after_disconnect = session_a.receive_json()
+
+        # After reconnect, status should reflect active client(s)
+        with websocket_client.websocket_connect("/ws/conversation/conv-7") as session_c:
+            session_c.receive_json()
+            status_after_reconnect = session_c.receive_json()
+
+    assert status_after_disconnect["type"] == "status"
+    assert status_after_disconnect["connected_clients"] >= 1
+    assert status_after_reconnect["type"] == "status"
+    assert status_after_reconnect["connected_clients"] >= 1
