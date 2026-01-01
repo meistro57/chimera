@@ -5,7 +5,6 @@ import logging
 import random
 import uuid
 from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
 from ..core.database import SessionLocal
 from ..models import Conversation, Message
 from ..providers import (
@@ -177,60 +176,105 @@ class ConversationOrchestrator:
         # Finalize logging
         conversation_logger.end_conversation_log(conversation_id)
 
+    def _fetch_recent_conversation_messages(self, conversation_id: str, limit: int = 10) -> List[Message]:
+        """Fetch recent conversation messages for topic analysis with safe cleanup."""
+        try:
+            conversation_uuid = uuid.UUID(conversation_id)
+        except (ValueError, TypeError) as exc:
+            logger.warning(
+                "Invalid conversation_id for topic routing; skipping history fetch",
+                extra={"conversation_id": conversation_id, "error": str(exc)},
+            )
+            conversation_logger.log_event(
+                conversation_id,
+                "topic_routing_history_invalid",
+                {"error": str(exc), "conversation_id": conversation_id},
+            )
+            return []
+
+        try:
+            with SessionLocal() as db:
+                messages = (
+                    db.query(Message)
+                    .filter(Message.conversation_id == conversation_uuid)
+                    .order_by(Message.created_at.desc())
+                    .limit(limit)
+                    .all()
+                )
+        except Exception as exc:  # pragma: no cover - defensive logging path
+            logger.exception(
+                "Failed to fetch conversation history for topic routing",
+                extra={"conversation_id": conversation_id},
+            )
+            conversation_logger.log_event(
+                conversation_id,
+                "topic_routing_history_failure",
+                {"error": str(exc), "conversation_id": conversation_id},
+            )
+            return []
+
+        return list(reversed(messages))
+
     async def _check_topic_routing(self, conversation_id: str, turn_count: int):
         """Check if conversation should shift topics and inject new starter if needed"""
         try:
-            # Get recent messages for analysis
-            db: Session = SessionLocal()
-            try:
-                recent_messages_query = db.query(Message).filter(
-                    Message.conversation_id == uuid.UUID(conversation_id)
-                ).order_by(Message.created_at.desc()).limit(10).all()
+            recent_messages = self._fetch_recent_conversation_messages(conversation_id)
+            if not recent_messages:
+                logger.debug(
+                    "No recent messages available for topic routing",
+                    extra={"conversation_id": conversation_id},
+                )
+                return
 
-                recent_contents = [msg.content for msg in reversed(recent_messages_query)][:10]
+            recent_contents = [msg.content for msg in recent_messages][:10]
 
-                # Analyze current topics
-                topic_scores = self.topic_analyzer.analyze_conversation_topics(recent_contents)
+            # Analyze current topics
+            topic_scores = self.topic_analyzer.analyze_conversation_topics(recent_contents)
 
-                # Get participants
-                participants = await self.get_participants(conversation_id)
+            # Get participants
+            participants = await self.get_participants(conversation_id)
 
-                # Check for topic shift suggestion
-                shift_topic = self.topic_analyzer.suggest_topic_shift(topic_scores, participants, turn_count)
+            # Check for topic shift suggestion
+            shift_topic = self.topic_analyzer.suggest_topic_shift(topic_scores, participants, turn_count)
 
-                if shift_topic:
-                    # Generate follow-up topic starter
-                    new_starter = self.topic_analyzer.get_topic_based_follow_up(shift_topic, participants)
+            if shift_topic:
+                # Generate follow-up topic starter
+                new_starter = self.topic_analyzer.get_topic_based_follow_up(shift_topic, participants)
 
-                    # Create routing message
-                    routing_message = {
-                        "type": "system",
-                        "content": f"The conversation naturally evolves to a new topic: {new_starter}",
-                        "sender": "system",
-                        "timestamp": asyncio.get_event_loop().time()
-                    }
+                # Create routing message
+                routing_message = {
+                    "type": "system",
+                    "content": f"The conversation naturally evolves to a new topic: {new_starter}",
+                    "sender": "system",
+                    "timestamp": asyncio.get_event_loop().time()
+                }
 
-                    # Log the routing event
-                    conversation_logger.log_event(conversation_id, "topic_shift", {
-                        "new_topic": new_starter,
-                        "routing_message": routing_message["content"]
-                    })
+                # Log the routing event
+                conversation_logger.log_event(conversation_id, "topic_shift", {
+                    "new_topic": new_starter,
+                    "routing_message": routing_message["content"]
+                })
 
-                    # Save and broadcast routing message
-                    await self._save_message_to_database(routing_message)
-                    await self.websocket_manager.broadcast_to_conversation(conversation_id, routing_message)
+                # Save and broadcast routing message
+                await self._save_message_to_database(routing_message)
+                await self.websocket_manager.broadcast_to_conversation(conversation_id, routing_message)
 
-                    # Log the routing message itself
-                    conversation_logger.log_message(conversation_id, routing_message)
+                # Log the routing message itself
+                conversation_logger.log_message(conversation_id, routing_message)
 
-                    # Add brief pause for routing
-                    await asyncio.sleep(2)
-
-            finally:
-                db.close()
+                # Add brief pause for routing
+                await asyncio.sleep(2)
 
         except Exception as e:
-            print(f"Error in topic routing: {e}")
+            logger.exception(
+                "Error encountered during topic routing",
+                extra={"conversation_id": conversation_id, "turn_count": turn_count},
+            )
+            conversation_logger.log_event(
+                conversation_id,
+                "topic_routing_error",
+                {"error": str(e), "conversation_id": conversation_id, "turn_count": turn_count},
+            )
 
     async def _show_typing_indicator(self, conversation_id: str, speaker: str):
         """Show typing indicator for the current speaker"""
