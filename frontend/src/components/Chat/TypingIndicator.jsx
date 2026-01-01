@@ -5,13 +5,14 @@ import PersonaAvatar from './PersonaAvatar'
 
 const TypingIndicator = ({ message: typingMessageOverride }) => {
   const { state } = useChatStore()
+  const { activeConversationId, conversations } = state
 
   const message = useMemo(() => {
     if (typingMessageOverride) return typingMessageOverride
-    if (!state.activeConversationId) return null
-    const messages = selectMessages(state, state.activeConversationId)
+    if (!activeConversationId) return null
+    const messages = selectMessages({ conversations }, activeConversationId)
     return messages.find(entry => entry.type === 'typing')
-  }, [state, typingMessageOverride])
+  }, [activeConversationId, conversations, typingMessageOverride])
 
   if (!message || message.type !== 'typing') {
     return null

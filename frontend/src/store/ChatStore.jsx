@@ -1,9 +1,11 @@
 // src/store/ChatStore.jsx
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 
+// --- Storage configuration -------------------------------------------------
 const STORAGE_KEY = 'chimera.chatStore'
 const STORAGE_VERSION = 1
 const MAX_MESSAGES_PER_CONVERSATION = 200
+const MAX_RECENT_HISTORY = 200
 
 export const initialState = {
   version: STORAGE_VERSION,
@@ -14,6 +16,7 @@ export const initialState = {
   lastError: null
 }
 
+// Safely hydrate from localStorage, trimming history and resetting on mismatch.
 const hydrateState = () => {
   if (typeof window === 'undefined') {
     return initialState
@@ -29,10 +32,21 @@ const hydrateState = () => {
       return initialState
     }
 
+    const sanitisedConversations = Object.entries(parsed.conversations || {}).reduce(
+      (acc, [conversationId, conversation]) => {
+        acc[conversationId] = {
+          ...conversation,
+          messages: (conversation.messages || []).slice(-MAX_RECENT_HISTORY)
+        }
+        return acc
+      },
+      {}
+    )
+
     return {
       ...initialState,
       ...parsed,
-      conversations: parsed.conversations || {},
+      conversations: sanitisedConversations,
       pendingUserMessages: parsed.pendingUserMessages || []
     }
   } catch (error) {
@@ -41,14 +55,23 @@ const hydrateState = () => {
   }
 }
 
+// Persist a trimmed snapshot so the browser keeps recent context only.
 const persistState = (state) => {
   if (typeof window === 'undefined') return
   try {
-    const snapshot = JSON.stringify({
+    const snapshot = {
       ...state,
-      version: STORAGE_VERSION
-    })
-    window.localStorage.setItem(STORAGE_KEY, snapshot)
+      version: STORAGE_VERSION,
+      conversations: Object.entries(state.conversations).reduce((acc, [conversationId, conversation]) => {
+        acc[conversationId] = {
+          ...conversation,
+          messages: (conversation.messages || []).slice(-MAX_RECENT_HISTORY)
+        }
+        return acc
+      }, {})
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch (error) {
     console.error('Failed to persist chat store:', error)
   }

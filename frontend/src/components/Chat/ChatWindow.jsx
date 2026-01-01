@@ -7,11 +7,12 @@ import TypingIndicator from './TypingIndicator'
 const ChatWindow = () => {
   const { state } = useChatStore()
   const messagesEndRef = useRef(null)
+  const { activeConversationId, conversations } = state
 
   const messages = useMemo(() => {
-    if (!state.activeConversationId) return []
-    return selectMessages(state, state.activeConversationId)
-  }, [state])
+    if (!activeConversationId) return []
+    return selectMessages({ conversations }, activeConversationId)
+  }, [activeConversationId, conversations])
 
   const typingMessage = useMemo(
     () => messages.find(message => message.type === 'typing'),
@@ -19,7 +20,9 @@ const ChatWindow = () => {
   )
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesEndRef.current?.scrollIntoView) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
   return (
