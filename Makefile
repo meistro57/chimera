@@ -64,6 +64,8 @@ down:
 
 # Database commands
 db-upgrade:
+        cd backend && python -m venv venv || true
+        cd backend && . venv/bin/activate && pip install -r requirements.txt
         cd backend && . venv/bin/activate && alembic -c alembic.ini upgrade head
 
 migrate:
