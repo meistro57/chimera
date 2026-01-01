@@ -63,6 +63,26 @@ class WebSocketManager:
             },
         )
 
+    async def send_disconnect_notice(
+        self,
+        websocket: WebSocket,
+        conversation_id: str,
+        *,
+        reason: str,
+        detail: Optional[str] = None,
+    ) -> None:
+        """Send a structured disconnect notice to the client."""
+        await self.send_personal_message(
+            {
+                "type": "disconnect",
+                "conversation_id": conversation_id,
+                "reason": reason,
+                "detail": detail,
+                "timestamp": time.time(),
+            },
+            websocket,
+        )
+
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         """Send a message to a specific websocket connection"""
         try:
@@ -151,10 +171,20 @@ class WebSocketManager:
                     stale_connections.append((conversation_id, websocket))
 
         for conversation_id, websocket in stale_connections:
+            self.logger.warning(
+                "Closing stale websocket connection",
+                extra={"conversation_id": conversation_id},
+            )
             await self.send_error(
                 websocket,
                 code="heartbeat_timeout",
                 message="Connection closed due to inactivity.",
+            )
+            await self.send_disconnect_notice(
+                websocket,
+                conversation_id,
+                reason="heartbeat_timeout",
+                detail="No heartbeat within timeout window",
             )
             await websocket.close(code=1001)
             self.disconnect(
@@ -170,9 +200,17 @@ class WebSocketManager:
             self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
     async def _heartbeat_loop(self):
-        while True:
-            await asyncio.sleep(self.heartbeat_interval)
-            await self.remove_stale_connections()
+        try:
+            while True:
+                await asyncio.sleep(self.heartbeat_interval)
+                await self.remove_stale_connections()
+        except asyncio.CancelledError:  # pragma: no cover - cooperative shutdown
+            self.logger.info("Heartbeat loop cancelled")
+            raise
+        except Exception:
+            self.logger.exception("Heartbeat loop failure")
+        finally:
+            self._heartbeat_task = None
 
 
 # Singleton accessor -------------------------------------------------------
