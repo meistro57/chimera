@@ -1,7 +1,15 @@
+# backend/tests/test_conversation_orchestrator.py
+import asyncio
+import uuid
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 import pytest_asyncio
-import asyncio
-from unittest.mock import AsyncMock, Mock, patch
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.core.database import Base
+from app.services import conversation_orchestrator
 from app.services.conversation_orchestrator import ConversationOrchestrator
 
 @pytest.fixture
@@ -88,3 +96,42 @@ async def test_select_provider_for_persona(orchestrator):
     orchestrator.provider_persona_assignment = {"philosopher": ["nonexistent"]}
     provider = await orchestrator._select_provider_for_persona("philosopher")
     assert provider is not None
+
+
+def _configure_in_memory_session(monkeypatch):
+    """Configure SessionLocal to use an in-memory SQLite database for testing."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(bind=engine)
+    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    monkeypatch.setattr(conversation_orchestrator, "SessionLocal", testing_session_local)
+    return engine
+
+
+def test_fetch_recent_conversation_messages_empty_history(monkeypatch):
+    """Ensure helper returns an empty list when no messages exist without raising."""
+    engine = _configure_in_memory_session(monkeypatch)
+    orchestrator = ConversationOrchestrator(Mock())
+    conversation_id = str(uuid.uuid4())
+
+    try:
+        messages = orchestrator._fetch_recent_conversation_messages(conversation_id)
+        assert messages == []
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_fetch_recent_conversation_messages_invalid_id(monkeypatch):
+    """Ensure helper degrades gracefully when given a malformed conversation ID."""
+    engine = _configure_in_memory_session(monkeypatch)
+    orchestrator = ConversationOrchestrator(Mock())
+
+    try:
+        messages = orchestrator._fetch_recent_conversation_messages("not-a-uuid")
+        assert messages == []
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
