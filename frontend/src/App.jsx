@@ -18,8 +18,11 @@ function App() {
     isConversationActive,
     startConversation,
     stopConversation,
+    clearMessages,
     setActiveConversation,
-    activeConversationId
+    activeConversationId,
+    loading,
+    error
   } = useConversation()
 
   const { connect, disconnect } = useWebSocket({ conversationId: activeConversationId })
@@ -63,6 +66,13 @@ function App() {
     await stopConversation(activeConversationId)
   }
 
+  const handleClearConversation = () => {
+    if (!activeConversationId) return
+    const shouldClear = window.confirm('Clear all messages in this conversation?')
+    if (!shouldClear) return
+    clearMessages(activeConversationId)
+  }
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <Header />
@@ -89,7 +99,10 @@ function App() {
                 isConversationActive={isConversationActive}
                 onStartConversation={handleStartConversation}
                 onStopConversation={handleStopConversation}
+                onClearConversation={handleClearConversation}
                 conversationId={activeConversationId}
+                loading={loading}
+                error={error}
               />
               <PersonaCards participants={participants} setParticipants={setParticipants} />
               <button
