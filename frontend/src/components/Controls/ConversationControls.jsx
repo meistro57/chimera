@@ -1,14 +1,17 @@
+// src/components/Controls/ConversationControls.jsx
 import React, { useState, useEffect, useCallback } from 'react'
-import { Play, Square, Users, Settings, Share2, Check, Copy, Zap, Key } from 'lucide-react'
+import { Play, Square, Users, Settings, Share2, Copy, Trash2, Key } from 'lucide-react'
 import PersonaSelector from './PersonaSelector'
 import PersonaCreator from './PersonaCreator'
-import ConnectionWizard from '../ConnectionWizard'
 
 const ConversationControls = ({
   isConversationActive,
   onStartConversation,
   onStopConversation,
-  conversationId
+  onClearConversation,
+  conversationId,
+  loading,
+  error
 }) => {
   const [personaRefreshTrigger, setPersonaRefreshTrigger] = useState(0);
   const [isShared, setIsShared] = useState(false);
@@ -110,6 +113,13 @@ const ConversationControls = ({
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === 'controls' && (
           <div className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-red-900">Something went wrong</h4>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            )}
+
             {/* Conversation Status */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-medium text-gray-900 mb-2">Conversation Status</h3>
@@ -132,33 +142,51 @@ const ConversationControls = ({
             <div className="space-y-3">
               <button
                 onClick={onStartConversation}
-                disabled={isConversationActive}
+                disabled={isConversationActive || loading}
                 className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors ${
-                  isConversationActive
+                  isConversationActive || loading
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
               >
                 <Play className="w-4 h-4 mr-2" />
-                Start Conversation
+                {loading ? 'Starting...' : 'Start Conversation'}
               </button>
 
               <button
                 onClick={onStopConversation}
-                disabled={!isConversationActive}
+                disabled={!isConversationActive || loading}
                 className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors ${
-                  !isConversationActive
+                  !isConversationActive || loading
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-red-600 hover:bg-red-700 text-white'
                 }`}
               >
                 <Square className="w-4 h-4 mr-2" />
-                Stop Conversation
+                {loading ? 'Stopping...' : 'Stop Conversation'}
+              </button>
+
+              <button
+                onClick={onClearConversation}
+                disabled={loading}
+                className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors ${
+                  loading
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                }`}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Messages
               </button>
 
               <button
                 onClick={toggleShare}
-                className="w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={loading}
+                className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors ${
+                  loading
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 {isShared ? 'Make Private' : 'Share Conversation'}
