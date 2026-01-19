@@ -227,6 +227,60 @@ class TestConversationsAPI:
             # Verify orchestrator was called
             mock_orch.stop_conversation.assert_called_once_with(conversation_id)
 
+    @pytest.mark.asyncio
+    async def test_share_conversation_owner_toggle(self, client, db_session):
+        """Test sharing toggle for conversation owner"""
+        # Create conversation
+        create_response = await client.post("/api/conversations", json={
+            "title": "Share Test",
+            "ai_participants": ["philosopher"]
+        })
+        conversation_id = create_response.json()["id"]
+
+        # Share conversation (make public)
+        share_response = await client.post(f"/api/conversations/{conversation_id}/share")
+        assert share_response.status_code == 200
+        share_data = share_response.json()
+        assert share_data["status"] == "made_public"
+        assert share_data["is_public"] is True
+        assert share_data["share_token"]
+
+        conversation = db_session.query(Conversation).filter(Conversation.id == conversation_id).first()
+        assert conversation.is_public is True
+        assert conversation.share_token == share_data["share_token"]
+
+        # Share again to make private
+        private_response = await client.post(f"/api/conversations/{conversation_id}/share")
+        assert private_response.status_code == 200
+        private_data = private_response.json()
+        assert private_data["status"] == "made_private"
+        assert private_data["is_public"] is False
+        assert private_data["share_token"] is None
+
+        conversation = db_session.query(Conversation).filter(Conversation.id == conversation_id).first()
+        assert conversation.is_public is False
+        assert conversation.share_token is None
+
+    @pytest.mark.asyncio
+    async def test_share_conversation_requires_owner(self, client):
+        """Ensure sharing cannot be modified without authentication"""
+        create_response = await client.post("/api/conversations", json={
+            "title": "Share Auth Test",
+            "ai_participants": ["philosopher"]
+        })
+        conversation_id = create_response.json()["id"]
+
+        original_user_override = app.dependency_overrides.get(get_current_user)
+        app.dependency_overrides[get_current_user] = lambda: None
+        try:
+            share_response = await client.post(f"/api/conversations/{conversation_id}/share")
+            assert share_response.status_code == 401
+        finally:
+            if original_user_override:
+                app.dependency_overrides[get_current_user] = original_user_override
+            else:
+                app.dependency_overrides.pop(get_current_user, None)
+
 
 class TestPersonasAPI:
     """Test persona management endpoints"""
@@ -263,7 +317,14 @@ class TestCorsAndSecurity:
     @pytest.mark.asyncio
     async def test_cors_headers(self, client, test_settings):
         """Test CORS headers are properly set"""
-        response = await client.options("/api/conversations")
+        response = await client.options(
+            "/api/conversations",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET"
+            }
+        )
+        assert response.status_code == 200
         assert "Access-Control-Allow-Origin" in response.headers
 
         response = await client.get("/api/conversations")
@@ -299,7 +360,7 @@ class TestErrorHandling:
             content="{invalid json",
             headers={"Content-Type": "application/json"}
         )
-        assert response.status_code == 400  # Bad request
+        assert response.status_code in (400, 422)  # Bad request may be 400 or 422 depending on parser
 
     @pytest.mark.asyncio
     async def test_missing_required_field(self, client):

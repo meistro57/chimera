@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from uuid import uuid4
 from ..core.database import get_database
 from ..core.config import settings
@@ -35,6 +35,20 @@ class ConversationResponse(BaseModel):
     participants: List[str]
     created_at: str
 
+
+class ConversationCreate(BaseModel):
+    title: str = Field(..., min_length=1)
+    ai_participants: List[str] = Field(..., min_length=1)
+    conversation_mode: str = Field(default="sequential")
+    is_public: bool = Field(default=False)
+
+    @field_validator("conversation_mode")
+    def _validate_conversation_mode(cls, value: str) -> str:
+        allowed_modes = {"sequential", "parallel"}
+        if value not in allowed_modes:
+            raise ValueError("conversation_mode must be 'sequential' or 'parallel'")
+        return value
+
 @router.get("/conversations")
 async def list_conversations(current_user: Optional[User] = Depends(get_current_user), db: Session = Depends(get_database)):
     """List all conversations for the current user"""
@@ -48,6 +62,7 @@ async def list_conversations(current_user: Optional[User] = Depends(get_current_
             "user_id": conv.user_id,
             "title": conv.title or "Untitled Conversation",
             "participants": conv.ai_participants or [],
+            "ai_participants": conv.ai_participants or [],
             "is_public": conv.is_public or False,
             "share_token": conv.share_token if conv.is_public else None,
             "created_at": conv.created_at.isoformat() + "Z" if conv.created_at else None,
@@ -67,8 +82,10 @@ async def create_conversation(
         id=str(uuid4()),
         user_id=current_user.id if current_user else None,
         title=conversation_data.title,
-        ai_participants=conversation_data.participants,
-        active_personas={}
+        ai_participants=conversation_data.ai_participants,
+        active_personas={},
+        conversation_mode=conversation_data.conversation_mode,
+        is_public=conversation_data.is_public
     )
 
     db.add(db_conversation)
@@ -80,6 +97,7 @@ async def create_conversation(
         "user_id": db_conversation.user_id,
         "title": db_conversation.title,
         "participants": db_conversation.ai_participants,
+        "ai_participants": db_conversation.ai_participants,
         "created_at": db_conversation.created_at.isoformat() if db_conversation.created_at else None,
         "updated_at": db_conversation.updated_at.isoformat() if db_conversation.updated_at else None
     }
@@ -109,6 +127,7 @@ async def get_conversation(
             "id": conversation.id,
             "title": conversation.title or "Untitled Conversation",
             "participants": conversation.ai_participants or [],
+            "ai_participants": conversation.ai_participants or [],
             "active_personas": conversation.active_personas or {},
             "conversation_mode": conversation.conversation_mode,
             "is_public": conversation.is_public or False,
@@ -133,6 +152,7 @@ async def get_conversation(
         "user_id": conversation.user_id,
         "title": conversation.title or "Untitled Conversation",
         "participants": conversation.ai_participants or [],
+        "ai_participants": conversation.ai_participants or [],
         "active_personas": conversation.active_personas or {},
         "conversation_mode": conversation.conversation_mode,
         "is_public": conversation.is_public or False,
@@ -290,12 +310,28 @@ async def stop_conversation(
     }
 
 @router.post("/conversations/{conversation_id}/share")
-async def share_conversation(conversation_id: str, db: Session = Depends(get_database)):
-    """Toggle sharing status for a conversation - anonymous access"""
+async def share_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_database),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """Toggle sharing status for a conversation - owner-only"""
     conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
 
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if conversation_id == "demo-conversation":
+        raise HTTPException(status_code=403, detail="Demo conversation cannot be manually shared")
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Authentication required to manage sharing")
+
+    if conversation.user_id and conversation.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can change sharing status")
+
+    if not conversation.user_id:
+        conversation.user_id = current_user.id
 
     # Toggle sharing status
     if conversation.is_public:

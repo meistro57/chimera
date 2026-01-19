@@ -322,16 +322,20 @@ class ConversationOrchestrator:
                 persona_params["model"] = persona_provider_config["model"]
                 print(f"DEBUG: Overriding model to {persona_provider_config['model']} for persona {persona}")
 
+            provider_name = getattr(provider, "provider_name", None)
+            if not isinstance(provider_name, str):
+                provider_name = provider.__class__.__name__.lower()
+
             # Check for cached response first
             cached_response = await response_cache.get_cached_response(
-                provider.provider_name, enhanced_messages, persona_params
+                provider_name, enhanced_messages, persona_params
             )
 
             if cached_response:
                 # Log cache hit
                 conversation_logger.log_event(conversation_id, "cache_hit", {
                     "persona": persona,
-                    "provider": provider.provider_name
+                    "provider": provider_name
                 })
                 return cached_response
 
@@ -345,13 +349,13 @@ class ConversationOrchestrator:
             # Cache the response for future use
             if response_text:
                 await response_cache.cache_response(
-                    provider.provider_name, enhanced_messages, persona_params, response_text
+                    provider_name, enhanced_messages, persona_params, response_text
                 )
 
                 # Log cache storage
                 conversation_logger.log_event(conversation_id, "cache_store", {
                     "persona": persona,
-                    "provider": provider.provider_name,
+                    "provider": provider_name,
                     "response_length": len(response_text)
                 })
 

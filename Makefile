@@ -11,16 +11,16 @@ help:
 	@echo "  dev-backend  - Start backend development server"
 	@echo "  dev-frontend - Start frontend development server"
 	@echo ""
-        @echo "Production:"
-        @echo "  build        - Build all Docker images"
-        @echo "  up           - Start production environment"
-        @echo "  down         - Stop all services"
-        @echo ""
-        @echo "Database:"
-        @echo "  db-upgrade   - Apply Alembic migrations (alembic upgrade head)"
-        @echo "  migrate      - Run database migrations"
-        @echo "  migrate-auto - Generate and run auto-migration"
-        @echo ""
+	@echo "Production:"
+	@echo "  build        - Build all Docker images"
+	@echo "  up           - Start production environment"
+	@echo "  down         - Stop all services"
+	@echo ""
+	@echo "Database:"
+	@echo "  db-upgrade   - Apply Alembic migrations (alembic upgrade head)"
+	@echo "  migrate      - Run database migrations"
+	@echo "  migrate-auto - Generate and run auto-migration"
+	@echo ""
 	@echo "Utilities:"
 	@echo "  logs         - Show logs from all services"
 	@echo "  clean        - Clean up Docker volumes and images"
@@ -64,12 +64,12 @@ down:
 
 # Database commands
 db-upgrade:
-        cd backend && python -m venv venv || true
-        cd backend && . venv/bin/activate && pip install -r requirements.txt
-        cd backend && . venv/bin/activate && alembic -c alembic.ini upgrade head
+	cd backend && python -m venv venv || true
+	cd backend && . venv/bin/activate && pip install -r requirements.txt
+	cd backend && . venv/bin/activate && alembic -c alembic.ini upgrade head
 
 migrate:
-        cd backend && . venv/bin/activate && alembic upgrade head
+	cd backend && . venv/bin/activate && alembic upgrade head
 
 migrate-auto:
 	cd backend && . venv/bin/activate && alembic revision --autogenerate -m "Auto migration"

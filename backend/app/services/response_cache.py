@@ -1,8 +1,11 @@
 import hashlib
 import json
+import logging
 from typing import List, Dict, Any, Optional
 from ..providers.base import ChatMessage
 from ..core.redis_client import redis_client
+
+logger = logging.getLogger(__name__)
 
 class ResponseCache:
     """Caching layer for AI provider responses to improve performance"""
@@ -17,7 +20,7 @@ class ResponseCache:
             await self.redis.connect()
 
     def _generate_cache_key(self, provider_name: str, messages: List[ChatMessage],
-                           persona_params: Dict[str, Any]) -> str:
+                           persona_params: Dict[str, Any]) -> Optional[str]:
         """Generate a deterministic cache key for the response"""
         # Sort messages by content to ensure consistent ordering
         message_content = []
@@ -38,8 +41,11 @@ class ResponseCache:
             }
         }
 
-        # Create deterministic JSON string
-        cache_string = json.dumps(cache_components, sort_keys=True, separators=(',', ':'))
+        try:
+            cache_string = json.dumps(cache_components, sort_keys=True, separators=(',', ':'))
+        except TypeError as exc:
+            logger.warning("Failed to serialize cache key: %s", exc)
+            return None
 
         # Generate hash for cache key (prevents overly long keys)
         hash_key = hashlib.sha256(cache_string.encode()).hexdigest()
@@ -52,6 +58,8 @@ class ResponseCache:
         await self.ensure_connected()
 
         cache_key = self._generate_cache_key(provider_name, messages, persona_params)
+        if not cache_key:
+            return None
 
         try:
             cached_data = await self.redis.get_json(cache_key)
@@ -70,6 +78,8 @@ class ResponseCache:
         await self.ensure_connected()
 
         cache_key = self._generate_cache_key(provider_name, messages, persona_params)
+        if not cache_key:
+            return
 
         try:
             cache_data = {

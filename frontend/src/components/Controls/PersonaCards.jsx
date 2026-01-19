@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Plus, Settings } from 'lucide-react';
 import PersonaAvatar from '../Chat/PersonaAvatar';
 import ConnectionWizard from '../ConnectionWizard';
+
+const DEFAULT_PERSONA_SELECTION = ["philosopher", "comedian", "scientist"];
 
 const PersonaCards = ({ participants, setParticipants }) => {
   const [selectedCard, setSelectedCard] = useState(null);
@@ -9,6 +11,14 @@ const PersonaCards = ({ participants, setParticipants }) => {
   const [tempValues, setTempValues] = useState([0.7, 0.7, 0.7]);
   const [availablePersonas, setAvailablePersonas] = useState(["philosopher", "comedian", "scientist", "chef", "awakening_mind"]);
   const [showConnectionWizard, setShowConnectionWizard] = useState(false);
+
+  useEffect(() => {
+    const normalized = (participants || DEFAULT_PERSONA_SELECTION)
+      .slice(0, 3)
+      .map((persona) => persona || "")
+    const padded = [...normalized, ...Array(3 - normalized.length).fill("")]
+    setSelectedPersonas(padded)
+  }, [participants])
 
   const handleCardClick = (index) => {
     setSelectedCard(index);
